@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binance Баланс Трекер</title>
+    <style>
+        :root {
+            --bg-color: #0C0E12;
+            --card-bg: #181A20;
+            --text-light: #EAECEF;
+            --text-dark: #181A20;
+            --primary-yellow: #F3BA2F;
+            --accent-green: #0ECB81;
+            --accent-red: #F6465D;
+            --accent-blue: #2962FF;
+            --accent-yellow: #F3BA2F;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 30px;
+            min-width: 800px;
+        }
+
+        /* Top Bar */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(14, 203, 129, 0.1);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(14, 203, 129, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(14, 203, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(14, 203, 129, 0); }
+        }
+
+        /* Hero Card */
+        .hero-card {
+            background: linear-gradient(135deg, #F3BA2F 0%, #D49B00 100%);
+            border-radius: 24px;
+            padding: 30px;
+            color: var(--text-dark);
+            box-shadow: 0 10px 20px rgba(243, 186, 47, 0.15);
+            margin-bottom: 30px;
+        }
+
+        .hero-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .hero-title {
+            font-size: 13px;
+            font-weight: 700;
+            opacity: 0.7;
+        }
+
+        .currency-select {
+            background: rgba(24, 26, 32, 0.08);
+            border: none;
+            color: var(--text-dark);
+            font-weight: 700;
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .balance-main {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .balance-secondary {
+            font-size: 18px;
+            font-weight: 500;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .sub-balances {
+            display: flex;
+            gap: 24px;
+            margin-top: 15px;
+        }
+
+        .sub-balance-item {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* Asset Grid */
+        .assets-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .asset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .asset-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .asset-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .asset-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-yellow);
+        }
+
+        .asset-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .badge-spot { color: var(--accent-green); background: rgba(14, 203, 129, 0.1); }
+        .badge-funding { color: var(--accent-blue); background: rgba(41, 98, 255, 0.1); }
+        .badge-bots { color: var(--accent-yellow); background: rgba(243, 186, 47, 0.1); }
+        .badge-futures { color: var(--accent-red); background: rgba(246, 70, 93, 0.1); }
+
+        .asset-amounts {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .asset-total {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .asset-usd {
+            font-size: 14px;
+            color: #848E9C;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(12, 14, 18, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .modal h2 { margin-top: 0; }
+        .modal input {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .modal input:focus { border-color: var(--primary-yellow); }
+        
+        .btn-primary {
+            width: 100%;
+            background: var(--primary-yellow);
+            color: var(--text-dark);
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* Utility */
+        .hidden { display: none; }
+        .error-msg { color: var(--accent-red); margin-bottom: 15px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal">
+            <h2>⚙️ Настройки API</h2>
+            <p style="font-size: 14px; color: #848E9C; margin-bottom: 20px;">
+                Ключи хранятся только в вашем браузере. Vercel использует их только для запросов к Binance.
+            </p>
+            <div id="auth-error" class="error-msg hidden"></div>
+            <input type="text" id="api-key" placeholder="Binance API Key">
+            <input type="password" id="api-secret" placeholder="Binance API Secret">
+            <button class="btn-primary" onclick="saveKeys()">Сохранить и Войти</button>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="hidden">
+        <div class="header">
+            <h1>Мой Портфель</h1>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <div class="live-badge">
+                    <div class="live-dot"></div> LIVE
+                </div>
+                <button onclick="openSettings()" style="background: none; border: none; cursor: pointer; color: #848E9C;">⚙️</button>
+            </div>
+        </div>
+
+        <div class="hero-card">
+            <div class="hero-header">
+                <div class="hero-title">ОБЩИЙ БАЛАНС</div>
+                <select class="currency-select" id="currency-select" onchange="fetchData()">
+                    <option value="UAH">≈ UAH (Гривна)</option>
+                    <option value="EUR">≈ EUR (Евро)</option>
+                    <option value="RUB">≈ RUB (Рубль)</option>
+                    <option value="BTC">≈ BTC (Биткоин)</option>
+                </select>
+            </div>
+            
+            <div class="balance-main" id="total-usd">$0.00</div>
+            <div class="balance-secondary" id="total-fiat">≈ 0.00 UAH</div>
+            
+            <div class="sub-balances">
+                <div class="sub-balance-item" id="spot-usd">Спот: $0.00</div>
+                <div class="sub-balance-item" id="funding-usd">Пополнение: $0.00</div>
+                <div class="sub-balance-item" id="bots-usd">Боты: $0.00</div>
+                <div class="sub-balance-item" id="futures-usd">Фьючерсы: $0.00</div>
+            </div>
+        </div>
+
+        <div class="assets-title">Активы</div>
+        <div class="asset-grid" id="asset-grid">
+            <!-- Asset Cards Injected Here -->
+        </div>
+    </div>
+
+    <script>
+        const API_ENDPOINT = '/api/portfolio';
+        let refreshInterval;
+
+        function checkAuth() {
+            const key = localStorage.getItem('binance_api_key');
+            const secret = localStorage.getItem('binance_api_secret');
+            
+            if (!key || !secret) {
+                document.getElementById('settings-modal').style.display = 'flex';
+                document.getElementById('app').classList.add('hidden');
+            } else {
+                document.getElementById('settings-modal').style.display = 'none';
+                document.getElementById('app').classList.remove('hidden');
+                document.getElementById('api-key').value = key;
+                document.getElementById('api-secret').value = secret;
+                startApp();
+            }
+        }
+
+        function saveKeys() {
+            const key = document.getElementById('api-key').value.trim();
+            const secret = document.getElementById('api-secret').value.trim();
+            
+            if (key && secret) {
+                localStorage.setItem('binance_api_key', key);
+                localStorage.setItem('binance_api_secret', secret);
+                checkAuth();
+            }
+        }
+
+        function openSettings() {
+            clearInterval(refreshInterval);
+            document.getElementById('settings-modal').style.display = 'flex';
+        }
+
+        function getCurrencySymbol(fiat) {
+            const map = { 'UAH': '₴', 'EUR': '€', 'RUB': '₽', 'BTC': '₿' };
+            return map[fiat] || fiat;
+        }
+
+        async function fetchData() {
+            const key = localStorage.getItem('binance_api_key');
+            const secret = localStorage.getItem('binance_api_secret');
+            const fiat = document.getElementById('currency-select').value;
+            
+            try {
+                const response = await fetch(`${API_ENDPOINT}?fiat=${fiat}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-MBX-APIKEY': key,
+                        'X-MBX-SECRET': secret
+                    }
+                });
+
+                if (response.status === 401) {
+                    localStorage.removeItem('binance_api_key');
+                    localStorage.removeItem('binance_api_secret');
+                    checkAuth();
+                    return;
+                }
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                updateUI(data);
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        }
+
+        function updateUI(data) {
+            const fiat = document.getElementById('currency-select').value;
+            const sym = getCurrencySymbol(fiat);
+
+            // Update Hero Card
+            document.getElementById('total-usd').innerText = `$${data.total_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            
+            let fiatStr = `≈ ${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: fiat === 'BTC' ? 6 : 2, maximumFractionDigits: fiat === 'BTC' ? 6 : 2})}`;
+            if (fiat === 'BTC') fiatStr += ` ${sym}`;
+            else fiatStr = `≈ ${sym}${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (fiat === 'UAH') fiatStr = `≈ ${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${sym}`;
+            
+            document.getElementById('total-fiat').innerText = fiatStr;
+
+            document.getElementById('spot-usd').innerText = `Спот: $${data.spot_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('funding-usd').innerText = `Пополнение: $${data.funding_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('bots-usd').innerText = `Боты: $${data.trading_bots_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('futures-usd').innerText = `Фьючерсы: $${data.futures_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            // Update Grid
+            const grid = document.getElementById('asset-grid');
+            grid.innerHTML = ''; // Clear
+
+            data.assets.forEach(asset => {
+                let badgeClass = 'badge-spot';
+                let badgeText = 'СПОТ';
+                if (asset.type === 'funding') { badgeClass = 'badge-funding'; badgeText = 'ФАНД'; }
+                if (asset.type === 'trading_bots') { badgeClass = 'badge-bots'; badgeText = 'БОТ'; }
+                if (asset.type === 'futures') { badgeClass = 'badge-futures'; badgeText = 'ФЬЮЧ'; }
+
+                const card = document.createElement('div');
+                card.className = 'asset-card';
+                card.innerHTML = `
+                    <div class="asset-header">
+                        <span class="asset-name">${asset.asset}</span>
+                        <span class="asset-badge ${badgeClass}">${badgeText}</span>
+                    </div>
+                    <div class="asset-amounts">
+                        <span class="asset-total">${asset.total}</span>
+                        <span class="asset-usd">$${asset.usd_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function startApp() {
+            fetchData();
+            // Start the 5-second interval
+            refreshInterval = setInterval(fetchData, 5000);
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', checkAuth);
+    </script>
+
+</body>
+</html>
