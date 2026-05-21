@@ -4,26 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Binance Баланс Трекер</title>
+    <!-- Modern premium font -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0C0E12;
-            --card-bg: #181A20;
-            --text-light: #EAECEF;
-            --text-dark: #181A20;
-            --primary-yellow: #F3BA2F;
+            --bg-color: #050505; /* Deep premium black */
+            --card-bg: rgba(255, 255, 255, 0.03); /* Glassmorphism base */
+            --card-border: rgba(255, 255, 255, 0.05);
+            --text-light: #F5F5F5;
+            --text-muted: #888888;
+            --text-dark: #121212;
+            --primary-yellow: #FCD535;
+            --primary-gradient: linear-gradient(135deg, #FCD535 0%, #F3BA2F 100%);
             --accent-green: #0ECB81;
             --accent-red: #F6465D;
             --accent-blue: #2962FF;
             --accent-yellow: #F3BA2F;
+            --shadow-glow: 0 10px 30px -10px rgba(243, 186, 47, 0.4);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
         body {
             background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 0%, rgba(243, 186, 47, 0.05) 0%, transparent 50%);
             color: var(--text-light);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            padding: 10px; /* Minimal padding for widget */
+            padding: 12px;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
         /* Top Bar */
@@ -31,42 +40,98 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
         }
 
         .header h1 {
             margin: 0;
             font-size: 16px;
-            font-weight: 600;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(90deg, #FFFFFF, #AAAAAA);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
 
         .refresh-btn {
             display: flex;
             align-items: center;
             gap: 6px;
-            background: rgba(14, 203, 129, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
             padding: 6px 12px;
-            border-radius: 12px;
+            border-radius: 20px;
             font-size: 11px;
-            font-weight: 700;
-            color: var(--accent-green);
-            border: none;
+            font-weight: 600;
+            color: var(--text-light);
             cursor: pointer;
             outline: none;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .refresh-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
         }
 
         .refresh-btn:active {
-            background: rgba(14, 203, 129, 0.2);
+            transform: translateY(1px);
+        }
+
+        .settings-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-light);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 12px;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(45deg);
         }
 
         /* Hero Card */
         .hero-card {
-            background: linear-gradient(135deg, #F3BA2F 0%, #D49B00 100%);
-            border-radius: 16px;
-            padding: 16px;
+            background: var(--primary-gradient);
+            border-radius: 20px;
+            padding: 20px;
             color: var(--text-dark);
-            box-shadow: 0 4px 12px rgba(243, 186, 47, 0.15);
-            margin-bottom: 16px;
+            box-shadow: var(--shadow-glow);
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Glass shine effect inside hero */
+        .hero-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-20deg);
+            animation: shine 6s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            20% { left: 200%; }
+            100% { left: 200%; }
         }
 
         .hero-header {
@@ -78,69 +143,104 @@
 
         .hero-title {
             font-size: 11px;
-            font-weight: 700;
-            opacity: 0.7;
+            font-weight: 800;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            text-transform: uppercase;
         }
 
         .currency-select {
-            background: rgba(24, 26, 32, 0.08);
-            border: none;
+            background: rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
             color: var(--text-dark);
+            font-family: 'Outfit', sans-serif;
             font-weight: 700;
             font-size: 11px;
             padding: 4px 8px;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             outline: none;
+            transition: var(--transition);
+        }
+
+        .currency-select:hover {
+            background: rgba(0, 0, 0, 0.12);
         }
 
         .balance-main {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 2px;
+            font-size: 38px;
+            font-weight: 800;
+            margin-bottom: 0px;
             word-break: break-word;
             line-height: 1.1;
+            letter-spacing: -1px;
         }
 
         .balance-secondary {
-            font-size: 14px;
-            font-weight: 500;
-            opacity: 0.8;
-            margin-bottom: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            opacity: 0.7;
+            margin-bottom: 16px;
         }
 
         .sub-balances {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px 16px;
+            gap: 10px 20px;
             margin-top: 10px;
+            border-top: 1px solid rgba(0,0,0,0.08);
+            padding-top: 12px;
         }
 
         .sub-balance-item {
-            font-size: 11px;
+            font-size: 12px;
+            font-weight: 700;
+            opacity: 0.85;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .sub-balance-item span {
+            font-size: 10px;
             font-weight: 600;
+            opacity: 0.6;
+            text-transform: uppercase;
         }
 
         /* Asset Grid */
         .assets-title {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            margin-left: 4px;
         }
 
         .asset-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
-            gap: 8px;
+            gap: 10px;
         }
 
         .asset-card {
             background: var(--card-bg);
-            border-radius: 10px;
-            padding: 12px;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 14px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
+            transition: var(--transition);
+        }
+
+        .asset-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
 
         .asset-header {
@@ -152,89 +252,150 @@
         .asset-name {
             font-size: 15px;
             font-weight: 700;
-            color: var(--primary-yellow);
+            color: var(--text-light);
+            letter-spacing: 0.5px;
         }
 
         .asset-badge {
             font-size: 9px;
-            font-weight: 700;
+            font-weight: 800;
             padding: 3px 6px;
-            border-radius: 4px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .badge-spot { color: var(--accent-green); background: rgba(14, 203, 129, 0.1); }
-        .badge-funding { color: var(--accent-blue); background: rgba(41, 98, 255, 0.1); }
-        .badge-bots { color: var(--accent-yellow); background: rgba(243, 186, 47, 0.1); }
-        .badge-futures { color: var(--accent-red); background: rgba(246, 70, 93, 0.1); }
+        .badge-spot { color: var(--accent-green); background: rgba(14, 203, 129, 0.15); border: 1px solid rgba(14, 203, 129, 0.2); }
+        .badge-funding { color: var(--accent-blue); background: rgba(41, 98, 255, 0.15); border: 1px solid rgba(41, 98, 255, 0.2); }
+        .badge-bots { color: var(--accent-yellow); background: rgba(243, 186, 47, 0.15); border: 1px solid rgba(243, 186, 47, 0.2); }
+        .badge-futures { color: var(--accent-red); background: rgba(246, 70, 93, 0.15); border: 1px solid rgba(246, 70, 93, 0.2); }
 
         .asset-amounts {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-end;
         }
 
         .asset-total {
             font-size: 14px;
             font-weight: 600;
+            color: var(--text-light);
         }
 
         .asset-usd {
-            font-size: 12px;
-            color: #848E9C;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary-yellow);
         }
 
-        /* Modals */
+        /* Glassmorphism Settings Modal */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(12, 14, 18, 0.8);
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             padding: 15px;
             box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
         }
 
         .modal {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1);
+            padding: 24px;
+            border-radius: 20px;
             width: 100%;
-            max-width: 400px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.1);
+            max-width: 320px;
+            transform: scale(0.95) translateY(10px);
+            transition: var(--transition);
         }
 
-        .modal h2 { margin-top: 0; }
+        .modal-overlay.show .modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal h2 { 
+            margin-top: 0; 
+            font-size: 18px; 
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #FFFFFF, #AAAAAA);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .modal p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
         .modal input {
             width: 100%;
-            background: rgba(255,255,255,0.05);
+            background: rgba(0,0,0,0.3);
             border: 1px solid rgba(255,255,255,0.1);
             color: white;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 16px;
+            font-family: 'Outfit', sans-serif;
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 12px;
             box-sizing: border-box;
             outline: none;
+            font-size: 13px;
+            transition: var(--transition);
         }
-        .modal input:focus { border-color: var(--primary-yellow); }
+        .modal input:focus { 
+            border-color: var(--primary-yellow); 
+            background: rgba(0,0,0,0.5);
+            box-shadow: 0 0 0 3px rgba(243, 186, 47, 0.15);
+        }
         
         .btn-primary {
             width: 100%;
-            background: var(--primary-yellow);
+            background: var(--primary-gradient);
             color: var(--text-dark);
             border: none;
             padding: 12px;
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
             cursor: pointer;
+            transition: var(--transition);
+            margin-top: 8px;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
         }
 
         /* Utility */
-        .hidden { display: none; }
-        .error-msg { color: var(--accent-red); margin-bottom: 15px; font-size: 14px; }
+        .hidden { display: none !important; }
+        .error-msg { 
+            color: var(--accent-red); 
+            background: rgba(246, 70, 93, 0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(246, 70, 93, 0.2);
+            margin-bottom: 15px; 
+            font-size: 12px; 
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -242,14 +403,12 @@
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal-overlay">
         <div class="modal">
-            <h2>⚙️ Настройки API</h2>
-            <p style="font-size: 14px; color: #848E9C; margin-bottom: 20px;">
-                Ключи хранятся только в вашем браузере. Vercel использует их только для запросов к Binance.
-            </p>
+            <h2>Настройки API</h2>
+            <p>Ваши ключи шифруются и хранятся только локально на вашем устройстве.</p>
             <div id="auth-error" class="error-msg hidden"></div>
             <input type="text" id="api-key" placeholder="Binance API Key">
             <input type="password" id="api-secret" placeholder="Binance API Secret">
-            <button class="btn-primary" onclick="saveKeys()">Сохранить и Войти</button>
+            <button class="btn-primary" onclick="saveKeys()">Подключить</button>
         </div>
     </div>
 
@@ -257,9 +416,14 @@
     <div id="app" class="hidden">
         <div class="header">
             <h1>Мой Портфель</h1>
-            <div style="display: flex; gap: 15px; align-items: center;">
-                <button class="refresh-btn" onclick="fetchData()">🔄 Обновить</button>
-                <button onclick="openSettings()" style="background: none; border: none; cursor: pointer; color: #848E9C;">⚙️</button>
+            <div class="header-actions">
+                <button class="refresh-btn" onclick="fetchData()">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+                    Обновить
+                </button>
+                <button class="settings-btn" onclick="openSettings()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
             </div>
         </div>
 
@@ -267,10 +431,10 @@
             <div class="hero-header">
                 <div class="hero-title">ОБЩИЙ БАЛАНС</div>
                 <select class="currency-select" id="currency-select" onchange="fetchData()">
-                    <option value="UAH">≈ UAH (Гривна)</option>
-                    <option value="EUR">≈ EUR (Евро)</option>
-                    <option value="RUB">≈ RUB (Рубль)</option>
-                    <option value="BTC">≈ BTC (Биткоин)</option>
+                    <option value="UAH">≈ UAH</option>
+                    <option value="EUR">≈ EUR</option>
+                    <option value="RUB">≈ RUB</option>
+                    <option value="BTC">≈ BTC</option>
                 </select>
             </div>
             
@@ -278,14 +442,26 @@
             <div class="balance-secondary" id="total-fiat">≈ 0.00 UAH</div>
             
             <div class="sub-balances">
-                <div class="sub-balance-item" id="spot-usd">Спот: $0.00</div>
-                <div class="sub-balance-item" id="funding-usd">Пополнение: $0.00</div>
-                <div class="sub-balance-item" id="bots-usd">Боты: $0.00</div>
-                <div class="sub-balance-item" id="futures-usd">Фьючерсы: $0.00</div>
+                <div class="sub-balance-item">
+                    <span>Спот</span>
+                    <div id="spot-usd">$0.00</div>
+                </div>
+                <div class="sub-balance-item">
+                    <span>Пополнение</span>
+                    <div id="funding-usd">$0.00</div>
+                </div>
+                <div class="sub-balance-item">
+                    <span>Боты</span>
+                    <div id="bots-usd">$0.00</div>
+                </div>
+                <div class="sub-balance-item">
+                    <span>Фьючерсы</span>
+                    <div id="futures-usd">$0.00</div>
+                </div>
             </div>
         </div>
 
-        <div class="assets-title">Активы</div>
+        <div class="assets-title">Ваши Активы</div>
         <div class="asset-grid" id="asset-grid">
             <!-- Asset Cards Injected Here -->
         </div>
@@ -293,16 +469,17 @@
 
     <script>
         const API_ENDPOINT = '/api/portfolio';
+        const modalOverlay = document.getElementById('settings-modal');
 
         function checkAuth() {
             const key = localStorage.getItem('binance_api_key');
             const secret = localStorage.getItem('binance_api_secret');
             
             if (!key || !secret) {
-                document.getElementById('settings-modal').style.display = 'flex';
+                openSettings();
                 document.getElementById('app').classList.add('hidden');
             } else {
-                document.getElementById('settings-modal').style.display = 'none';
+                closeSettings();
                 document.getElementById('app').classList.remove('hidden');
                 document.getElementById('api-key').value = key;
                 document.getElementById('api-secret').value = secret;
@@ -322,7 +499,16 @@
         }
 
         function openSettings() {
-            document.getElementById('settings-modal').style.display = 'flex';
+            modalOverlay.style.display = 'flex';
+            // Slight delay to trigger CSS transition
+            setTimeout(() => modalOverlay.classList.add('show'), 10);
+        }
+
+        function closeSettings() {
+            modalOverlay.classList.remove('show');
+            setTimeout(() => {
+                modalOverlay.style.display = 'none';
+            }, 300);
         }
 
         function getCurrencySymbol(fiat) {
@@ -334,6 +520,10 @@
             const key = localStorage.getItem('binance_api_key');
             const secret = localStorage.getItem('binance_api_secret');
             const fiat = document.getElementById('currency-select').value;
+            
+            // Add loading effect to button
+            const refreshBtn = document.querySelector('.refresh-btn svg');
+            refreshBtn.style.animation = 'spin 1s linear infinite';
             
             try {
                 const response = await fetch(`${API_ENDPOINT}?fiat=${fiat}`, {
@@ -361,6 +551,8 @@
 
             } catch (error) {
                 console.error("Error fetching data:", error);
+            } finally {
+                refreshBtn.style.animation = 'none';
             }
         }
 
@@ -378,10 +570,10 @@
             
             document.getElementById('total-fiat').innerText = fiatStr;
 
-            document.getElementById('spot-usd').innerText = `Спот: $${data.spot_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            document.getElementById('funding-usd').innerText = `Пополнение: $${data.funding_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            document.getElementById('bots-usd').innerText = `Боты: $${data.trading_bots_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            document.getElementById('futures-usd').innerText = `Фьючерсы: $${data.futures_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('spot-usd').innerText = `$${data.spot_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('funding-usd').innerText = `$${data.funding_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('bots-usd').innerText = `$${data.trading_bots_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('futures-usd').innerText = `$${data.futures_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
             // Update Grid
             const grid = document.getElementById('asset-grid');
@@ -414,9 +606,15 @@
             fetchData();
         }
 
+        // Add custom CSS for spinning animation
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes spin { 100% { transform: rotate(360deg); } }
+        `;
+        document.head.appendChild(style);
+
         // Init
         document.addEventListener('DOMContentLoaded', checkAuth);
     </script>
-
 </body>
 </html>
