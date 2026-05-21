@@ -9,7 +9,7 @@ def index():
 
 @app.route("/widget")
 def widget():
-    return render_template("jswidget.html")
+    return render_template("widget.html")
 
 @app.route("/api/portfolio", methods=["GET"])
 def portfolio():
