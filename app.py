@@ -23,7 +23,10 @@ def portfolio():
         # Determine target fiat from query parameter, default to UAH
         fiat = request.args.get("fiat", "UAH")
         
-        portfolio_data = client.get_full_portfolio(fiat_currency=fiat)
+        portfolio_data = client.get_full_portfolio()
+        rate = portfolio_data["fiat_rates"].get(fiat, 1.0)
+        portfolio_data["total_fiat"] = portfolio_data["total_usd"] * rate
+        
         return jsonify(portfolio_data)
         
     except Exception as e:

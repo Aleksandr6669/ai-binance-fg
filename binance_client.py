@@ -249,26 +249,28 @@ class BinanceClient:
                     val = balance_val * btc_price
                     trading_bots_usd += val
                     aggregated.append({
-                        "asset": "BTC (Бот)",
-                        "free": balance_val,
-                        "locked": 0.0,
-                        "total": balance_val,
+                        "asset": "Trading Bots",
+                        "free": "-",
+                        "locked": "-",
+                        "total": "-",
+                        "type": "trading_bots",
                         "wallet": "Trading Bots",
                         "usd_value": val,
-                        "price": btc_price
+                        "price": 0.0
                     })
                 elif name in ("USDⓈ-M Futures", "COIN-M Futures"):
                     # Check if there is active balance in Futures not covered under standard spot/funding
                     val = balance_val * btc_price
                     futures_usd += val
                     aggregated.append({
-                        "asset": "BTC (Фьюч)",
-                        "free": balance_val,
-                        "locked": 0.0,
-                        "total": balance_val,
+                        "asset": "Futures",
+                        "free": "-",
+                        "locked": "-",
+                        "total": "-",
+                        "type": "futures",
                         "wallet": "Futures",
                         "usd_value": val,
-                        "price": btc_price
+                        "price": 0.0
                     })
             
         aggregated.sort(key=lambda x: x["usd_value"], reverse=True)
