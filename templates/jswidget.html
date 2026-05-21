@@ -7,21 +7,24 @@
     <meta name="js-widget-title" content="Binance Balance">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            background: linear-gradient(135deg, #1A1A1C 0%, #000000 100%);
-            color: #FFFFFF;
-            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+        html, body {
             margin: 0;
             padding: 0;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            /* EXACTLY LIKE THE MAIN APP HERO CARD */
+            background: linear-gradient(135deg, #FCD535 0%, #F3BA2F 100%);
+            color: #121212;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
             overflow: hidden;
             user-select: none;
             -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* The whole body acts as a button */
         .widget-container {
             width: 100%;
             height: 100%;
@@ -32,6 +35,25 @@
             justify-content: space-between;
             cursor: pointer;
             transition: transform 0.15s ease-out;
+            position: relative;
+        }
+
+        /* Glass shine effect inside hero */
+        .widget-container::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-20deg);
+            animation: shine 6s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            20% { left: 200%; }
+            100% { left: 200%; }
         }
 
         .widget-container:active {
@@ -42,6 +64,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: relative;
+            z-index: 2;
         }
 
         .title-group {
@@ -53,7 +77,7 @@
         .title {
             font-size: 10px;
             font-weight: 800;
-            color: #FCD535;
+            color: rgba(0, 0, 0, 0.6);
             letter-spacing: 0.5px;
             text-transform: uppercase;
             display: flex;
@@ -61,21 +85,25 @@
             gap: 4px;
         }
 
+        /* Same as main app select */
         .currency-select {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #FFFFFF;
+            background: rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            color: #121212;
             font-family: 'Outfit', sans-serif;
             font-weight: 700;
             font-size: 9px;
-            padding: 2px 4px;
-            border-radius: 4px;
+            padding: 4px 6px;
+            border-radius: 6px;
             cursor: pointer;
             outline: none;
             -webkit-appearance: none;
+            transition: background 0.3s;
+        }
+        .currency-select:active {
+            background: rgba(0, 0, 0, 0.15);
         }
 
-        /* Refresh spinning icon */
         .sync-icon {
             opacity: 0;
             transition: opacity 0.3s;
@@ -100,32 +128,35 @@
             flex-direction: column;
             justify-content: center;
             flex-grow: 1;
+            position: relative;
+            z-index: 2;
         }
 
         .balance-usd {
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 800;
             margin-bottom: 2px;
-            letter-spacing: -0.5px;
-            text-shadow: 0 4px 10px rgba(255,255,255,0.1);
+            letter-spacing: -1px;
             word-break: break-word;
             line-height: 1.1;
         }
 
         .balance-fiat {
             font-size: 11px;
-            font-weight: 600;
-            color: #A0A0A5;
+            font-weight: 700;
+            color: rgba(0, 0, 0, 0.6);
         }
 
         .footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.05);
             border-radius: 8px;
             padding: 6px 10px;
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+            position: relative;
+            z-index: 2;
         }
 
         .footer-item {
@@ -135,15 +166,15 @@
 
         .footer-item span:first-child {
             font-size: 8px;
-            color: #A0A0A5;
-            font-weight: 700;
+            color: rgba(0, 0, 0, 0.6);
+            font-weight: 800;
             text-transform: uppercase;
         }
 
         .footer-item span:last-child {
             font-size: 11px;
             font-weight: 800;
-            color: #FFFFFF;
+            color: #121212;
         }
 
         .error {
@@ -163,10 +194,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.1);
             border-radius: 50%;
             z-index: 100;
-            color: white;
+            color: #121212;
             text-decoration: none;
             opacity: 0;
             transition: opacity 0.3s;
@@ -177,12 +208,10 @@
     </style>
 </head>
 <body>
-    <!-- Hidden back button to go to main app, visible on hover -->
     <a href="/" class="overlay-link" title="Назад">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
 
-    <!-- The entire widget is clickable -->
     <div class="widget-container" onclick="updateWidget()">
         <div class="header">
             <div class="title-group">
@@ -246,7 +275,7 @@
                 document.getElementById('usd-balance').style.fontSize = "18px";
                 document.getElementById('fiat-balance').innerText = "Зайдите через главное меню";
                 document.getElementById('status-indicator').style.backgroundColor = "#FF453A";
-                document.getElementById('status-indicator').style.boxShadow = "0 0 8px rgba(255, 69, 58, 0.6)";
+                document.getElementById('status-indicator').style.boxShadow = "none";
                 syncIcon.classList.remove('loading');
                 wLog("API keys missing");
                 return;
@@ -282,14 +311,14 @@
                 document.getElementById('bots-val').innerText = `$${data.trading_bots_usd.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
                 
                 document.getElementById('status-indicator').style.backgroundColor = "#0ECB81"; 
-                document.getElementById('status-indicator').style.boxShadow = "0 0 8px rgba(14, 203, 129, 0.6)";
+                document.getElementById('status-indicator').style.boxShadow = "0 0 6px rgba(14, 203, 129, 0.6)";
                 document.getElementById('error-msg').style.display = "none";
                 wLog("Widget updated successfully");
 
             } catch (err) {
                 wLog(`Error: ${err.message}`);
                 document.getElementById('status-indicator').style.backgroundColor = "#FF453A"; 
-                document.getElementById('status-indicator').style.boxShadow = "0 0 8px rgba(255, 69, 58, 0.6)";
+                document.getElementById('status-indicator').style.boxShadow = "none";
                 document.getElementById('error-msg').innerText = err.message;
                 document.getElementById('error-msg').style.display = "block";
             } finally {
