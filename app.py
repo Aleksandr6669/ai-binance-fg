@@ -7,6 +7,10 @@ app = Flask(__name__)
 def index():
     return render_template("index.html")
 
+@app.route("/widget")
+def widget():
+    return render_template("jswidget.html")
+
 @app.route("/api/portfolio", methods=["GET"])
 def portfolio():
     # Extract API Keys securely from the Request Headers

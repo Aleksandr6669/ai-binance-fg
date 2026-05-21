@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Binance Widget</title>
+    <meta name="js-widget-title" content="Binance Balance">
+    <style>
+        body {
+            background-color: #000000;
+            color: #FFFFFF;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 12px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #F3BA2F;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #0ECB81;
+            border-radius: 50%;
+            box-shadow: 0 0 5px #0ECB81;
+        }
+
+        .balance-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-grow: 1;
+        }
+
+        .balance-usd {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 2px;
+            letter-spacing: -0.5px;
+        }
+
+        .balance-fiat {
+            font-size: 12px;
+            font-weight: 500;
+            color: #8E8E93;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #1C1C1E;
+            padding-top: 8px;
+        }
+
+        .footer-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .footer-item span:first-child {
+            font-size: 9px;
+            color: #8E8E93;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .footer-item span:last-child {
+            font-size: 11px;
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+
+        .error {
+            color: #FF453A;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">Binance</div>
+        <div class="status-dot" id="status-indicator"></div>
+    </div>
+
+    <div class="balance-container">
+        <div class="balance-usd" id="usd-balance">Загрузка...</div>
+        <div class="balance-fiat" id="fiat-balance">-- UAH</div>
+        <div class="error" id="error-msg" style="display: none;"></div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-item">
+            <span>Спот</span>
+            <span id="spot-val">--</span>
+        </div>
+        <div class="footer-item" style="text-align: right;">
+            <span>Боты</span>
+            <span id="bots-val">--</span>
+        </div>
+    </div>
+
+    <script>
+        // Use a lightweight function to log to WidgetWeb app if available
+        function wLog(msg) {
+            if (typeof __wweb2Log === "function") {
+                __wweb2Log(msg);
+            }
+            console.log(msg);
+        }
+
+        async function updateWidget() {
+            wLog("Starting widget update");
+            const key = localStorage.getItem('binance_api_key');
+            const secret = localStorage.getItem('binance_api_secret');
+
+            if (!key || !secret) {
+                document.getElementById('usd-balance').innerText = "Нет ключей";
+                document.getElementById('usd-balance').style.fontSize = "16px";
+                document.getElementById('fiat-balance').innerText = "Зайдите через браузер";
+                document.getElementById('status-indicator').style.backgroundColor = "#FF453A";
+                wLog("API keys missing");
+                return;
+            }
+
+            try {
+                // Determine host, handling local debug vs vercel
+                const host = window.location.origin;
+                const response = await fetch(`${host}/api/portfolio?fiat=UAH`, {
+                    method: 'GET',
+                    headers: {
+                        'X-MBX-APIKEY': key,
+                        'X-MBX-SECRET': secret
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                document.getElementById('usd-balance').innerText = `$${data.total_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                document.getElementById('fiat-balance').innerText = `≈ ₴${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                
+                document.getElementById('spot-val').innerText = `$${data.spot_usd.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+                document.getElementById('bots-val').innerText = `$${data.trading_bots_usd.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+                
+                document.getElementById('status-indicator').style.backgroundColor = "#0ECB81"; // Green
+                document.getElementById('error-msg').style.display = "none";
+                wLog("Widget updated successfully");
+
+            } catch (err) {
+                wLog(`Error: ${err.message}`);
+                document.getElementById('status-indicator').style.backgroundColor = "#FF453A"; // Red
+                document.getElementById('error-msg').innerText = err.message;
+                document.getElementById('error-msg').style.display = "block";
+            }
+        }
+
+        // Run immediately
+        updateWidget();
+
+        // If the widget stays active on screen, refresh every 30 seconds
+        setInterval(updateWidget, 30000);
+    </script>
+</body>
+</html>
