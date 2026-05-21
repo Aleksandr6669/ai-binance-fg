@@ -10,11 +10,8 @@
         html, body {
             margin: 0;
             padding: 0;
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
+            width: 100vw;
+            height: 100vh;
             /* EXACTLY LIKE THE MAIN APP HERO CARD */
             background: linear-gradient(135deg, #FCD535 0%, #F3BA2F 100%);
             color: #121212;
@@ -26,8 +23,8 @@
         }
 
         .widget-container {
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             padding: 12px;
             box-sizing: border-box;
             display: flex;
@@ -117,10 +114,9 @@
         .status-dot {
             width: 6px;
             height: 6px;
-            background-color: #0ECB81;
+            background-color: #A0A0A5; /* Grey by default */
             border-radius: 50%;
-            box-shadow: 0 0 6px rgba(14, 203, 129, 0.6);
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, box-shadow 0.3s;
         }
 
         .balance-container {
@@ -180,7 +176,7 @@
         .error {
             color: #FF453A;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 800;
             text-align: center;
             margin-top: 10px;
         }
@@ -264,6 +260,7 @@
             wLog("Starting widget update");
             const syncIcon = document.getElementById('sync-icon');
             syncIcon.classList.add('loading');
+            document.getElementById('status-indicator').style.backgroundColor = "#FCD535"; // Yellow while loading
             
             const key = localStorage.getItem('binance_api_key');
             const secret = localStorage.getItem('binance_api_secret');
@@ -273,8 +270,8 @@
             if (!key || !secret) {
                 document.getElementById('usd-balance').innerText = "Нет ключей";
                 document.getElementById('usd-balance').style.fontSize = "18px";
-                document.getElementById('fiat-balance').innerText = "Зайдите через главное меню";
-                document.getElementById('status-indicator').style.backgroundColor = "#FF453A";
+                document.getElementById('fiat-balance').innerText = "Откройте сайт и войдите";
+                document.getElementById('status-indicator').style.backgroundColor = "#FF453A"; // Red
                 document.getElementById('status-indicator').style.boxShadow = "none";
                 syncIcon.classList.remove('loading');
                 wLog("API keys missing");
@@ -282,8 +279,8 @@
             }
 
             try {
-                const host = window.location.origin;
-                const response = await fetch(`${host}/api/portfolio?fiat=${fiat}`, {
+                // Use relative URL so it strictly uses the Vercel domain the widget is loaded from
+                const response = await fetch(`/api/portfolio?fiat=${fiat}`, {
                     method: 'GET',
                     headers: {
                         'X-MBX-APIKEY': key,
@@ -292,7 +289,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                    throw new Error(`Ошибка сети: ${response.status}`);
                 }
 
                 const data = await response.json();
@@ -310,17 +307,18 @@
                 document.getElementById('spot-val').innerText = `$${data.spot_usd.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
                 document.getElementById('bots-val').innerText = `$${data.trading_bots_usd.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
                 
-                document.getElementById('status-indicator').style.backgroundColor = "#0ECB81"; 
+                document.getElementById('status-indicator').style.backgroundColor = "#0ECB81"; // Green 
                 document.getElementById('status-indicator').style.boxShadow = "0 0 6px rgba(14, 203, 129, 0.6)";
                 document.getElementById('error-msg').style.display = "none";
                 wLog("Widget updated successfully");
 
             } catch (err) {
                 wLog(`Error: ${err.message}`);
-                document.getElementById('status-indicator').style.backgroundColor = "#FF453A"; 
+                document.getElementById('status-indicator').style.backgroundColor = "#FF453A"; // Red
                 document.getElementById('status-indicator').style.boxShadow = "none";
                 document.getElementById('error-msg').innerText = err.message;
                 document.getElementById('error-msg').style.display = "block";
+                document.getElementById('usd-balance').innerText = "Ошибка";
             } finally {
                 syncIcon.classList.remove('loading');
             }
