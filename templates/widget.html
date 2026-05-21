@@ -8,134 +8,216 @@
     <style>
         * { box-sizing: border-box; }
         
-        html, body {
-            margin: 0; padding: 0; width: 100vw; height: 100vh;
-            background: #121212;
+        body {
+            margin: 0; padding: 20px;
+            background: #2a2a2a; /* Dark background to see the widgets clearly */
             color: #FFFFFF;
             font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-            overflow: hidden;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
+            display: flex; flex-direction: column; gap: 40px; align-items: center;
+            user-select: none; -webkit-user-select: none;
         }
 
+        h2 { color: white; margin-bottom: 5px; text-align: center; }
+        p.desc { color: #A0A0A5; font-size: 14px; text-align: center; margin-top: 0; margin-bottom: 15px; }
+
+        /* WIDGET LINKS / WRAPPERS */
         .widget-link {
-            display: block; width: 100vw; height: 100vh;
-            text-decoration: none; color: inherit;
-            display: flex; flex-direction: column;
-        }
-
-        #widget-click-overlay {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999;
-            display: block; text-decoration: none; cursor: pointer;
+            display: block; text-decoration: none; color: inherit;
+            border-radius: 20px; overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: #121212;
+            position: relative;
             --wweb2-overlay-btn-color: rgba(0, 0, 0, 0.0);
             --wweb2-overlay-btn-press-color: rgba(255, 255, 255, 0.1);
         }
 
-        .page-content {
-            display: flex; flex-direction: column; width: 100vw; height: 100vh;
-        }
-
-        /* YELLOW HERO CARD (Fixed height to fill Small/Medium widget) */
-        .hero-section {
-            height: 155px; /* iOS Small/Medium widget height */
-            flex-shrink: 0;
-            width: 100%;
+        /* ---------------------------------------------------
+           1. SMALL WIDGET (155x155)
+        --------------------------------------------------- */
+        .w-small { width: 155px; height: 155px; }
+        .w-small .hero-section {
+            width: 100%; height: 100%; padding: 12px;
             background: linear-gradient(135deg, #FCD535 0%, #F3BA2F 100%);
-            color: #121212;
-            padding: 12px;
-            display: flex; flex-direction: column; justify-content: space-between;
-            position: relative; overflow: hidden;
+            color: #121212; display: flex; flex-direction: column; justify-content: space-between;
         }
+        .w-small .title-text { font-size: 10px; font-weight: 800; text-transform: uppercase; }
+        .w-small .currency-badge { background: rgba(0,0,0,0.08); padding: 2px 5px; border-radius: 4px; font-size: 8px; font-weight: 800;}
+        .w-small .balance-usd { font-size: 24px; font-weight: 800; letter-spacing: -1px; margin-top: 8px; }
+        .w-small .balance-fiat { font-size: 10px; font-weight: 700; color: rgba(0,0,0,0.6); }
+        .w-small .hero-footer {
+            background: rgba(0,0,0,0.05); padding: 6px; border-radius: 6px;
+            display: flex; justify-content: space-between;
+        }
+        .w-small .hf-item span:first-child { font-size: 7px; color: rgba(0,0,0,0.6); font-weight: 800; text-transform: uppercase; display: block; }
+        .w-small .hf-item span:last-child { font-size: 10px; font-weight: 800; display: block; }
+
+        /* ---------------------------------------------------
+           2. MEDIUM WIDGET (329x155)
+        --------------------------------------------------- */
+        .w-medium { width: 329px; height: 155px; }
+        .w-medium .hero-section {
+            width: 100%; height: 100%; padding: 16px 20px;
+            background: linear-gradient(135deg, #FCD535 0%, #F3BA2F 100%);
+            color: #121212; display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .w-medium .title-text { font-size: 12px; font-weight: 800; text-transform: uppercase; }
+        .w-medium .currency-badge { background: rgba(0,0,0,0.08); padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;}
+        .w-medium .mid-row { display: flex; align-items: baseline; gap: 10px; margin-top: auto; margin-bottom: 15px;}
+        .w-medium .balance-usd { font-size: 38px; font-weight: 800; letter-spacing: -1px; }
+        .w-medium .balance-fiat { font-size: 14px; font-weight: 700; color: rgba(0,0,0,0.6); }
+        .w-medium .hero-footer {
+            background: rgba(0,0,0,0.05); padding: 10px 16px; border-radius: 8px;
+            display: flex; justify-content: space-between;
+        }
+        .w-medium .hf-item span:first-child { font-size: 9px; color: rgba(0,0,0,0.6); font-weight: 800; text-transform: uppercase; display: block; }
+        .w-medium .hf-item span:last-child { font-size: 14px; font-weight: 800; display: block; }
+
+        /* ---------------------------------------------------
+           3. LARGE WIDGET (329x345)
+        --------------------------------------------------- */
+        .w-large { width: 329px; height: 345px; display: flex; flex-direction: column; }
+        .w-large .hero-section {
+            height: 155px; width: 100%; padding: 16px 20px;
+            background: linear-gradient(135deg, #FCD535 0%, #F3BA2F 100%);
+            color: #121212; display: flex; flex-direction: column; justify-content: space-between;
+            border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 2; position: relative;
+        }
+        .w-large .title-text { font-size: 12px; font-weight: 800; text-transform: uppercase; }
+        .w-large .currency-badge { background: rgba(0,0,0,0.08); padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 800;}
+        .w-large .balance-usd { font-size: 42px; font-weight: 800; letter-spacing: -1px; margin-bottom: 2px;}
+        .w-large .balance-fiat { font-size: 14px; font-weight: 700; color: rgba(0,0,0,0.6); }
+        .w-large .hero-footer {
+            background: rgba(0,0,0,0.05); padding: 8px 14px; border-radius: 8px;
+            display: flex; justify-content: space-between;
+        }
+        .w-large .hf-item span:first-child { font-size: 9px; color: rgba(0,0,0,0.6); font-weight: 800; text-transform: uppercase; display: block; }
+        .w-large .hf-item span:last-child { font-size: 14px; font-weight: 800; display: block; }
         
+        .w-large .assets-section {
+            flex-grow: 1; padding: 16px; background: #121212; display: flex; flex-direction: column;
+        }
+        .w-large .section-title { font-size: 11px; font-weight: 800; color: #FCD535; text-transform: uppercase; margin-bottom: 8px; }
+        .w-large .list-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 8px 10px; border-radius: 8px; margin-bottom: 6px;}
+        .w-large .item-name { font-size: 13px; font-weight: 800; color: #FFF; }
+        .w-large .item-sub { font-size: 10px; font-weight: 600; color: #A0A0A5; }
+        .w-large .item-val { font-size: 13px; font-weight: 800; color: #FFF; }
+        .w-large .item-right { text-align: right; }
+
+        /* COMMON SHINE EFFECT */
         .hero-section::after {
             content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
             background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
-            transform: skewX(-20deg); animation: shine 6s infinite; pointer-events: none;
-            z-index: 1;
+            transform: skewX(-20deg); animation: shine 6s infinite; pointer-events: none; z-index: 1;
         }
         @keyframes shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
-
         .header-top { display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative; }
         .title-group { display: flex; align-items: center; gap: 6px; }
-        .title-text { font-size: 11px; font-weight: 800; color: rgba(0,0,0,0.6); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
-        
-        .currency-badge {
-            background: rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); color: #121212;
-            font-weight: 800; font-size: 9px; padding: 3px 6px; border-radius: 6px;
-        }
-        
         .status-dot { width: 6px; height: 6px; background-color: #A0A0A5; border-radius: 50%; }
-
-        .balance-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; z-index: 2; position: relative; }
-        .balance-usd { font-size: 28px; font-weight: 800; margin-bottom: 2px; letter-spacing: -1px; word-break: break-word; line-height: 1.1; }
-        .balance-fiat { font-size: 12px; font-weight: 700; color: rgba(0,0,0,0.6); }
-
-        .hero-footer {
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.05); border-radius: 8px; padding: 6px 10px; border: 1px solid rgba(0,0,0,0.05);
-            z-index: 2; position: relative;
-        }
-        .hf-item { display: flex; flex-direction: column; }
-        .hf-item span:first-child { font-size: 8px; color: rgba(0,0,0,0.6); font-weight: 800; text-transform: uppercase; }
-        .hf-item span:last-child { font-size: 11px; font-weight: 800; color: #121212; }
-
-        /* DARK ASSETS SECTION (Revealed only in Large widget) */
-        .lists-container {
-            flex-grow: 1;
-            padding: 12px;
-            display: flex; flex-direction: column; gap: 6px;
-        }
-        
-        .section-title { font-size: 11px; font-weight: 800; color: #FCD535; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
-
-        .list-item {
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(255,255,255,0.05); padding: 6px 8px; border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.02);
-        }
-        .item-left { display: flex; flex-direction: column; }
-        .item-name { font-size: 12px; font-weight: 800; color: #FFF; }
-        .item-sub { font-size: 9px; font-weight: 600; color: #A0A0A5; }
-        .item-right { display: flex; flex-direction: column; align-items: flex-end; }
-        .item-val { font-size: 12px; font-weight: 800; color: #FFF; }
 
     </style>
 </head>
 <body>
-    <!-- Invisible overlay button for WidgetWeb native interaction -->
-    <a href="#action=cycle" id="widget-click-overlay" onclick="event.preventDefault(); cycleCurrency();"></a>
     
-    <div class="page-content">
-        <!-- TOP SECTION (Visible in all sizes) -->
-        <div class="hero-section">
-            <div class="header-top">
-                <div class="title-group">
-                    <div class="title-text">Binance</div>
-                    <div class="currency-badge" id="currency-badge">UAH</div>
+    <div>
+        <h2>Small Widget (155x155)</h2>
+        <p class="desc">Crop this for your small widget</p>
+        <a href="#action=cycle" class="widget-link w-small" onclick="event.preventDefault(); cycleCurrency();">
+            <div class="hero-section">
+                <div class="header-top">
+                    <div class="title-group">
+                        <div class="title-text">Binance</div>
+                        <div class="currency-badge currency-text">UAH</div>
+                    </div>
+                    <div class="status-dot status-indicator"></div>
                 </div>
-                <div class="status-dot status-indicator"></div>
+                <div>
+                    <div class="balance-usd usd-text">Загрузка...</div>
+                    <div class="balance-fiat fiat-text">--</div>
+                </div>
+                <div class="hero-footer">
+                    <div class="hf-item"><span>Спот</span><span class="spot-text">--</span></div>
+                    <div class="hf-item" style="text-align: right;"><span>Боты</span><span class="bots-text">--</span></div>
+                </div>
             </div>
-
-            <div class="balance-container">
-                <div class="balance-usd" id="usd-balance">Загрузка...</div>
-                <div class="balance-fiat" id="fiat-balance">--</div>
-            </div>
-
-            <div class="hero-footer">
-                <div class="hf-item"><span>Спот</span><span id="spot-val">--</span></div>
-                <div class="hf-item" style="text-align: right;"><span>Боты</span><span id="bots-val">--</span></div>
-            </div>
-        </div>
-
-        <!-- BOTTOM SECTION (Revealed in Large Widget) -->
-        <div class="lists-container">
-            <div class="section-title">Ваши Активы</div>
-            <div id="assets-list" style="display:flex; flex-direction:column; gap:6px;">
-                <div style="font-size: 11px; color:#A0A0A5; text-align:center; margin-top:10px;">Загрузка...</div>
-            </div>
-        </div>
+        </a>
     </div>
+
+    <div>
+        <h2>Medium Widget (329x155)</h2>
+        <p class="desc">Crop this for your rectangular widget</p>
+        <a href="#action=cycle" class="widget-link w-medium" onclick="event.preventDefault(); cycleCurrency();">
+            <div class="hero-section">
+                <div class="header-top">
+                    <div class="title-group">
+                        <div class="title-text">Binance</div>
+                        <div class="currency-badge currency-text">UAH</div>
+                    </div>
+                    <div class="status-dot status-indicator"></div>
+                </div>
+                <div class="mid-row">
+                    <div class="balance-usd usd-text">Загрузка...</div>
+                    <div class="balance-fiat fiat-text">--</div>
+                </div>
+                <div class="hero-footer">
+                    <div class="hf-item"><span>Спот</span><span class="spot-text">--</span></div>
+                    <div class="hf-item" style="text-align: right;"><span>Боты</span><span class="bots-text">--</span></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div>
+        <h2>Large Widget (329x345)</h2>
+        <p class="desc">Crop this for your large square widget</p>
+        <a href="#action=cycle" class="widget-link w-large" onclick="event.preventDefault(); cycleCurrency();">
+            <div class="hero-section">
+                <div class="header-top">
+                    <div class="title-group">
+                        <div class="title-text">Binance</div>
+                        <div class="currency-badge currency-text">UAH</div>
+                    </div>
+                    <div class="status-dot status-indicator"></div>
+                </div>
+                <div>
+                    <div class="balance-usd usd-text">Загрузка...</div>
+                    <div class="balance-fiat fiat-text">--</div>
+                </div>
+                <div class="hero-footer">
+                    <div class="hf-item"><span>Спот</span><span class="spot-text">--</span></div>
+                    <div class="hf-item" style="text-align: right;"><span>Боты</span><span class="bots-text">--</span></div>
+                </div>
+            </div>
+            <div class="assets-section">
+                <div class="section-title">Ваши Активы</div>
+                <div id="large-assets-list" style="display:flex; flex-direction:column;">
+                    <div style="font-size: 11px; color:#A0A0A5; text-align:center; margin-top:20px;">Загрузка...</div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <script>
+        const currencies = ['UAH', 'EUR', 'RUB', 'BTC'];
+        let currentCurrencyIdx = parseInt(localStorage.getItem('widget_cur_idx') || '0');
+        let isDataLoaded = false;
+
+        // WidgetWeb function to wait for JS to fetch data before taking screenshot
+        function __wweb2WaitMillisecondsToWidgetIsReady(currentDelayMs) {
+            return isDataLoaded ? 0 : 500;
+        }
+
+        // Process URL hash for WidgetWeb native taps exactly like TicTacToe
+        let queryString = window.location.hash;
+        if (queryString.startsWith("#")) {
+            queryString = queryString.substring(1);
+        }
+        const urlParams = new URLSearchParams(queryString);
+        const actionParam = urlParams.get('action');
+        if (actionParam === 'cycle') {
+            currentCurrencyIdx = (currentCurrencyIdx + 1) % currencies.length;
+            localStorage.setItem('widget_cur_idx', currentCurrencyIdx);
+        }
 
     <script>
         const currencies = ['UAH', 'EUR', 'RUB', 'BTC'];
@@ -162,7 +244,7 @@
         function cycleCurrency() {
             currentCurrencyIdx = (currentCurrencyIdx + 1) % currencies.length;
             localStorage.setItem('widget_cur_idx', currentCurrencyIdx);
-            document.getElementById('currency-badge').innerText = currencies[currentCurrencyIdx];
+            document.querySelectorAll('.currency-text').forEach(el => el.innerText = currencies[currentCurrencyIdx]);
             updateData();
         }
 
@@ -181,10 +263,10 @@
             const fiat = currencies[currentCurrencyIdx];
             const sym = { 'UAH':'₴', 'EUR':'€', 'RUB':'₽', 'BTC':'₿' }[fiat] || fiat;
 
-            document.getElementById('currency-badge').innerText = fiat;
+            document.querySelectorAll('.currency-text').forEach(el => el.innerText = fiat);
 
             if (!key || !secret) {
-                document.getElementById('usd-balance').innerText = "Нет API";
+                document.querySelectorAll('.usd-text').forEach(el => el.innerText = "Нет API");
                 setStatus("#FF453A");
                 isDataLoaded = true;
                 return;
@@ -199,16 +281,18 @@
                 const data = await response.json();
                 if (data.error) throw new Error(data.error);
 
-                // HERO
-                document.getElementById('usd-balance').innerText = `$${data.total_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                const usdStr = `$${data.total_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 let fiatStr = `≈ ${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: fiat==='BTC'?6:2, maximumFractionDigits: fiat==='BTC'?6:2})}`;
                 if (fiat !== 'BTC' && fiat !== 'UAH') fiatStr = `≈ ${sym}${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
                 if (fiat === 'UAH' || fiat === 'BTC') fiatStr += ` ${sym}`;
-                document.getElementById('fiat-balance').innerText = fiatStr;
-                document.getElementById('spot-val').innerText = `$${data.spot_usd.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
-                document.getElementById('bots-val').innerText = `$${data.trading_bots_usd.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+                const spotStr = `$${data.spot_usd.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+                const botsStr = `$${data.trading_bots_usd.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+
+                document.querySelectorAll('.usd-text').forEach(el => el.innerText = usdStr);
+                document.querySelectorAll('.fiat-text').forEach(el => el.innerText = fiatStr);
+                document.querySelectorAll('.spot-text').forEach(el => el.innerText = spotStr);
+                document.querySelectorAll('.bots-text').forEach(el => el.innerText = botsStr);
                 
-                // ASSETS (For large widget)
                 const spotAssets = data.assets.filter(a => a.asset !== "Futures" && a.asset !== "Trading Bots" && a.total_usd > 1);
                 spotAssets.sort((a, b) => b.total_usd - a.total_usd);
                 const topAssets = spotAssets.slice(0, 3);
@@ -228,24 +312,23 @@
                     </div>`;
                 });
                 
-                // Add Bots & Futures to the bottom of the list
                 const bots = data.assets.find(a => a.asset === "Trading Bots");
                 const futures = data.assets.find(a => a.asset === "Futures");
                 if (bots && bots.total_usd > 0) {
-                    assetsHtml += `<div class="list-item"><div class="item-name" style="color:#FCD535;">🤖 АвтоБоты</div><div class="item-val" style="color:#0ECB81;">$${bots.total_usd.toLocaleString('en-US', {maximumFractionDigits: 2})}</div></div>`;
+                    assetsHtml += `<div class="list-item"><div class="item-name" style="color:#FCD535;">🤖 АвтоБоты</div><div class="item-right"><div class="item-val" style="color:#0ECB81;">$${bots.total_usd.toLocaleString('en-US', {maximumFractionDigits: 2})}</div></div></div>`;
                 }
                 if (futures && futures.total_usd > 0) {
-                    assetsHtml += `<div class="list-item"><div class="item-name" style="color:#FF453A;">⚡ Фьючерсы</div><div class="item-val" style="color:#0ECB81;">$${futures.total_usd.toLocaleString('en-US', {maximumFractionDigits: 2})}</div></div>`;
+                    assetsHtml += `<div class="list-item"><div class="item-name" style="color:#FF453A;">⚡ Фьючерсы</div><div class="item-right"><div class="item-val" style="color:#0ECB81;">$${futures.total_usd.toLocaleString('en-US', {maximumFractionDigits: 2})}</div></div></div>`;
                 }
 
-                document.getElementById('assets-list').innerHTML = assetsHtml;
+                document.getElementById('large-assets-list').innerHTML = assetsHtml;
                 setStatus("#0ECB81"); 
 
             } catch (err) {
                 setStatus("#FF453A"); 
-                document.getElementById('usd-balance').innerText = "Ошибка";
+                document.querySelectorAll('.usd-text').forEach(el => el.innerText = "Ошибка");
             } finally {
-                isDataLoaded = true; // Tell WidgetWeb we are ready for screenshot
+                isDataLoaded = true;
             }
         }
 
