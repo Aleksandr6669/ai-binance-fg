@@ -222,11 +222,20 @@
     <script>
         const currencies = ['UAH', 'EUR', 'RUB', 'BTC'];
         let currentCurrencyIdx = parseInt(localStorage.getItem('widget_cur_idx') || '0');
+        if (isNaN(currentCurrencyIdx)) currentCurrencyIdx = 0;
+        
         let isDataLoaded = false;
 
         // WidgetWeb function to wait for JS to fetch data before taking screenshot
         function __wweb2WaitMillisecondsToWidgetIsReady(currentDelayMs) {
             return isDataLoaded ? 0 : 500;
+        }
+
+        // Parse keys from URL just in case WidgetWeb isolated localStorage is empty
+        const urlParamsSearch = new URLSearchParams(window.location.search);
+        if (urlParamsSearch.has('key') && urlParamsSearch.has('secret')) {
+            localStorage.setItem('binance_api_key', urlParamsSearch.get('key'));
+            localStorage.setItem('binance_api_secret', urlParamsSearch.get('secret'));
         }
 
         // Process URL hash for WidgetWeb native taps exactly like TicTacToe
@@ -265,17 +274,15 @@
 
             document.querySelectorAll('.currency-text').forEach(el => el.innerText = fiat);
 
-            if (!key || !secret) {
-                document.querySelectorAll('.usd-text').forEach(el => el.innerText = "Нет API");
-                setStatus("#FF453A");
-                isDataLoaded = true;
-                return;
-            }
-
             try {
-                const response = await fetch(`/api/portfolio?fiat=${fiat}`, {
-                    headers: { 'X-MBX-APIKEY': key, 'X-MBX-SECRET': secret }
-                });
+                // If we have keys, send them. If not, don't send headers so server can use its local .env fallback.
+                const headers = {};
+                if (key && secret) {
+                    headers['X-MBX-APIKEY'] = key;
+                    headers['X-MBX-SECRET'] = secret;
+                }
+
+                const response = await fetch(`/api/portfolio?fiat=${fiat}`, { headers });
 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();

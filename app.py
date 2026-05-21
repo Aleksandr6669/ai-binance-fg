@@ -1,5 +1,9 @@
+import os
 from flask import Flask, render_template, request, jsonify
 from binance_client import BinanceClient
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -13,12 +17,17 @@ def widget():
 
 @app.route("/api/portfolio", methods=["GET"])
 def portfolio():
-    # Extract API Keys securely from the Request Headers
+    # Try getting keys from Request Headers first (Web UI)
     api_key = request.headers.get("X-MBX-APIKEY")
     api_secret = request.headers.get("X-MBX-SECRET")
 
+    # Fallback to local environment variables (for Widget without localStorage)
     if not api_key or not api_secret:
-        return jsonify({"error": "Missing Binance API credentials in headers"}), 401
+        api_key = os.environ.get("BINANCE_API_KEY")
+        api_secret = os.environ.get("BINANCE_API_SECRET")
+
+    if not api_key or not api_secret:
+        return jsonify({"error": "Missing Binance API credentials. Please add them to .env or headers."}), 401
 
     try:
         # Initialize client per request (Stateless)
