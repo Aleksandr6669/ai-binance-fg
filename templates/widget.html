@@ -10,7 +10,7 @@
         
         html, body {
             margin: 0; padding: 0; width: 100vw; height: 100vh;
-            background: #121212; /* Default dark background for medium/large */
+            background: #121212;
             color: #FFFFFF;
             font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
             overflow: hidden;
@@ -20,21 +20,29 @@
         }
 
         .widget-container {
-            width: 100%; height: 100%;
-            display: flex;
+            width: 100vw; height: 100vh;
+            position: relative;
             cursor: pointer;
-            transition: transform 0.15s ease-out;
         }
-        .widget-container:active { transform: scale(0.98); }
 
-        /* YELLOW HERO SECTION */
+        /* Common view styles */
+        .view-section {
+            width: 100%; height: 100%;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            position: absolute; top: 0; left: 0;
+            padding: 12px;
+            animation: fadeIn 0.2s ease-out;
+        }
+        .view-section.active { display: flex; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+        /* VIEW 1: YELLOW HERO SECTION */
         .hero-section {
             background: linear-gradient(135deg, #FCD535 0%, #F3BA2F 100%);
             color: #121212;
-            padding: 12px;
-            display: flex; flex-direction: column; justify-content: space-between;
-            position: relative; overflow: hidden;
-            flex-shrink: 0;
+            justify-content: space-between;
         }
         
         /* Glass shine effect inside hero */
@@ -45,24 +53,41 @@
         }
         @keyframes shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
 
-        .hero-header { display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative; }
-        .hero-title-group { display: flex; align-items: center; gap: 6px; }
-        .hero-title { font-size: 10px; font-weight: 800; color: rgba(0,0,0,0.6); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative; margin-bottom: 8px; }
+        .title-group { display: flex; align-items: center; gap: 6px; }
+        .title-text { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
         
+        /* Hero specific text colors */
+        .hero-section .title-text { color: rgba(0,0,0,0.6); }
+        .hero-section .balance-fiat { color: rgba(0,0,0,0.6); }
+        
+        /* Dark views specific text colors */
+        .dark-view .title-text { color: #FCD535; }
+
         .currency-select {
             background: rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); color: #121212;
             font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 9px; padding: 4px 6px; border-radius: 6px;
             cursor: pointer; outline: none; -webkit-appearance: none; transition: background 0.3s;
         }
+        .dark-view .currency-select {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.05); color: #FFF;
+        }
         
+        .controls { display: flex; align-items: center; gap: 8px; }
         .status-dot { width: 6px; height: 6px; background-color: #A0A0A5; border-radius: 50%; transition: background-color 0.3s; }
-        .sync-icon { opacity: 0; transition: opacity 0.3s; }
-        .sync-icon.loading { opacity: 1; animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .refresh-btn { 
+            background: rgba(0,0,0,0.1); border-radius: 50%; width: 22px; height: 22px; 
+            display: flex; justify-content: center; align-items: center; cursor: pointer; color: #121212;
+            z-index: 10; position: relative;
+        }
+        .dark-view .refresh-btn { background: rgba(255,255,255,0.1); color: #FFF; }
+        .refresh-btn:active { transform: scale(0.9); }
+        .refresh-btn svg { transition: transform 0.3s; }
+        .refresh-btn.loading svg { animation: spin 1s linear infinite; }
 
         .balance-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; z-index: 2; position: relative; }
-        .balance-usd { font-size: 24px; font-weight: 800; margin-bottom: 2px; letter-spacing: -1px; word-break: break-word; line-height: 1.1; }
-        .balance-fiat { font-size: 11px; font-weight: 700; color: rgba(0,0,0,0.6); }
+        .balance-usd { font-size: 26px; font-weight: 800; margin-bottom: 2px; letter-spacing: -1px; word-break: break-word; line-height: 1.1; }
+        .balance-fiat { font-size: 11px; font-weight: 700; }
 
         .hero-footer {
             display: flex; justify-content: space-between; align-items: center;
@@ -73,80 +98,51 @@
         .hf-item span:first-child { font-size: 8px; color: rgba(0,0,0,0.6); font-weight: 800; text-transform: uppercase; }
         .hf-item span:last-child { font-size: 11px; font-weight: 800; color: #121212; }
 
-
-        /* DARK ASSETS SECTION (Hidden in Small) */
-        .assets-section {
-            background: #121212;
-            padding: 10px 12px;
-            display: flex; flex-direction: column;
-            flex-grow: 1; overflow: hidden;
-        }
-        .section-title { font-size: 11px; font-weight: 800; color: #FCD535; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
-        
-        .asset-list { display: flex; flex-direction: column; gap: 6px; flex-grow: 1; }
-        .asset-item {
+        /* VIEW 2 & 3: DARK LISTS */
+        .list-container { display: flex; flex-direction: column; gap: 6px; flex-grow: 1; overflow: hidden; }
+        .list-item {
             display: flex; justify-content: space-between; align-items: center;
             background: rgba(255,255,255,0.05); padding: 6px 8px; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.02);
         }
-        .asset-left { display: flex; flex-direction: column; }
-        .asset-name { font-size: 12px; font-weight: 800; color: #FFF; }
-        .asset-price { font-size: 9px; font-weight: 600; color: #A0A0A5; }
-        .asset-right { display: flex; flex-direction: column; align-items: flex-end; }
-        .asset-total { font-size: 12px; font-weight: 800; color: #FFF; }
-        .asset-amount { font-size: 9px; font-weight: 600; color: #A0A0A5; }
+        .item-left { display: flex; flex-direction: column; }
+        .item-name { font-size: 12px; font-weight: 800; color: #FFF; }
+        .item-sub { font-size: 9px; font-weight: 600; color: #A0A0A5; }
+        .item-right { display: flex; flex-direction: column; align-items: flex-end; }
+        .item-val { font-size: 12px; font-weight: 800; color: #FFF; }
 
-
-        /* BOTS SECTION (Hidden in Small and Medium) */
-        .bots-section {
-            background: #121212;
-            padding: 0 12px 10px 12px;
-            display: flex; flex-direction: column; gap: 6px;
+        /* Dots indicator at the bottom */
+        .page-dots {
+            display: flex; justify-content: center; gap: 4px; margin-top: 6px;
         }
+        .dot { width: 4px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 50%; }
+        .hero-section .dot { background: rgba(0,0,0,0.2); }
+        .dot.active { background: #FFF; }
+        .hero-section .dot.active { background: #121212; }
 
-
-        /* =========================================
-           RESPONSIVE WIDGET SIZES (MEDIA QUERIES)
-           ========================================= */
-
-        /* 1. SMALL WIDGET (Default) e.g., 155x155 */
-        .assets-section, .bots-section { display: none; }
-        .hero-section { width: 100%; height: 100%; border-radius: 0; }
-
-        /* 2. MEDIUM WIDGET (Wide) e.g., 329x155 */
-        @media (min-width: 250px) and (max-height: 250px) {
-            .assets-section { display: flex; width: 50%; height: 100%; border-left: 1px solid rgba(255,255,255,0.1); }
-            .hero-section { width: 50%; height: 100%; }
-        }
-
-        /* 3. LARGE WIDGET (Tall & Wide) e.g., 329x345 */
-        @media (min-width: 250px) and (min-height: 250px) {
-            .widget-container { flex-direction: column; }
-            .hero-section { width: 100%; height: auto; flex-grow: 0; padding-bottom: 16px; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 10; }
-            .assets-section { display: flex; width: 100%; height: auto; flex-grow: 1; padding-top: 16px; }
-            .bots-section { display: flex; width: 100%; }
-        }
-        
     </style>
 </head>
 <body>
-    <div class="widget-container" onclick="updateWidget()">
+    <div class="widget-container" onclick="nextView()">
         
-        <!-- PART 1: HERO (Always visible) -->
-        <div class="hero-section">
-            <div class="hero-header">
-                <div class="hero-title-group">
-                    <div class="hero-title">
-                        Binance
-                        <svg class="sync-icon" id="sync-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
-                    </div>
-                    <select class="currency-select" id="currency-select" onclick="event.stopPropagation()" onchange="updateWidget()">
+        <!-- VIEW 1: TOTAL BALANCE -->
+        <div class="view-section hero-section active" id="view-0">
+            <div class="header-top">
+                <div class="title-group">
+                    <div class="title-text">Binance</div>
+                    <select class="currency-select" id="currency-select-0" onclick="event.stopPropagation()" onchange="changeCurrency(this.value)">
                         <option value="UAH">UAH</option>
                         <option value="EUR">EUR</option>
                         <option value="RUB">RUB</option>
                         <option value="BTC">BTC</option>
                     </select>
                 </div>
-                <div class="status-dot" id="status-indicator"></div>
+                <div class="controls">
+                    <div class="status-dot status-indicator"></div>
+                    <div class="refresh-btn" onclick="event.stopPropagation(); updateData();">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+                    </div>
+                </div>
             </div>
 
             <div class="balance-container">
@@ -158,44 +154,93 @@
                 <div class="hf-item"><span>Спот</span><span id="spot-val">--</span></div>
                 <div class="hf-item" style="text-align: right;"><span>Боты</span><span id="bots-val">--</span></div>
             </div>
-        </div>
-
-        <!-- PART 2: ASSETS (Medium & Large) -->
-        <div class="assets-section">
-            <div class="section-title">Ваши Активы</div>
-            <div class="asset-list" id="assets-list">
-                <div style="font-size: 11px; color:#A0A0A5; text-align:center; margin-top:20px;">Загрузка...</div>
+            
+            <div class="page-dots">
+                <div class="dot active"></div><div class="dot"></div><div class="dot"></div>
             </div>
         </div>
 
-        <!-- PART 3: BOTS & FUTURES (Large only) -->
-        <div class="bots-section" id="bots-list">
-            <!-- Populated dynamically -->
+        <!-- VIEW 2: SPOT ASSETS -->
+        <div class="view-section dark-view" id="view-1">
+            <div class="header-top">
+                <div class="title-group">
+                    <div class="title-text">Топ Спот</div>
+                </div>
+                <div class="controls">
+                    <div class="status-dot status-indicator"></div>
+                    <div class="refresh-btn" onclick="event.stopPropagation(); updateData();">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+                    </div>
+                </div>
+            </div>
+            <div class="list-container" id="assets-list">
+                <div style="font-size: 11px; color:#A0A0A5; text-align:center; margin-top:20px;">Загрузка...</div>
+            </div>
+            <div class="page-dots">
+                <div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: BOTS & FUTURES -->
+        <div class="view-section dark-view" id="view-2">
+            <div class="header-top">
+                <div class="title-group">
+                    <div class="title-text">АвтоТорговля</div>
+                </div>
+                <div class="controls">
+                    <div class="status-dot status-indicator"></div>
+                    <div class="refresh-btn" onclick="event.stopPropagation(); updateData();">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+                    </div>
+                </div>
+            </div>
+            <div class="list-container" id="bots-list">
+                <div style="font-size: 11px; color:#A0A0A5; text-align:center; margin-top:20px;">Загрузка...</div>
+            </div>
+            <div class="page-dots">
+                <div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+            </div>
         </div>
 
     </div>
 
     <script>
-        function getCurrencySymbol(fiat) {
-            const map = { 'UAH': '₴', 'EUR': '€', 'RUB': '₽', 'BTC': '₿' };
-            return map[fiat] || fiat;
+        let currentView = 0;
+        const totalViews = 3;
+
+        function nextView() {
+            document.getElementById(`view-${currentView}`).classList.remove('active');
+            currentView = (currentView + 1) % totalViews;
+            document.getElementById(`view-${currentView}`).classList.add('active');
         }
 
-        async function updateWidget() {
-            const syncIcon = document.getElementById('sync-icon');
-            syncIcon.classList.add('loading');
-            document.getElementById('status-indicator').style.backgroundColor = "#FFFFFF";
+        function changeCurrency(val) {
+            document.getElementById('currency-select-0').value = val;
+            updateData();
+        }
+
+        function setStatus(color, isLoad) {
+            document.querySelectorAll('.status-indicator').forEach(el => {
+                el.style.backgroundColor = color;
+                el.style.boxShadow = color === '#0ECB81' ? '0 0 6px rgba(14,203,129,0.6)' : 'none';
+            });
+            document.querySelectorAll('.refresh-btn').forEach(el => {
+                if(isLoad) el.classList.add('loading');
+                else el.classList.remove('loading');
+            });
+        }
+
+        async function updateData() {
+            setStatus("#FCD535", true);
             
             const key = localStorage.getItem('binance_api_key');
             const secret = localStorage.getItem('binance_api_secret');
-            const fiat = document.getElementById('currency-select').value;
-            const sym = getCurrencySymbol(fiat);
+            const fiat = document.getElementById('currency-select-0').value;
+            const sym = { 'UAH':'₴', 'EUR':'€', 'RUB':'₽', 'BTC':'₿' }[fiat] || fiat;
 
             if (!key || !secret) {
                 document.getElementById('usd-balance').innerText = "Нет ключей";
-                document.getElementById('usd-balance').style.fontSize = "16px";
-                document.getElementById('status-indicator').style.backgroundColor = "#FF453A";
-                syncIcon.classList.remove('loading');
+                setStatus("#FF453A", false);
                 return;
             }
 
@@ -208,17 +253,16 @@
                 const data = await response.json();
                 if (data.error) throw new Error(data.error);
 
-                // --- 1. HERO SECTION ---
+                // VIEW 1: HERO
                 document.getElementById('usd-balance').innerText = `$${data.total_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                let fiatStr = `≈ ${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: fiat === 'BTC' ? 6 : 2, maximumFractionDigits: fiat === 'BTC' ? 6 : 2})}`;
-                if (fiat === 'BTC') fiatStr += ` ${sym}`;
-                else fiatStr = `≈ ${sym}${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                if (fiat === 'UAH') fiatStr = `≈ ${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${sym}`;
+                let fiatStr = `≈ ${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: fiat==='BTC'?6:2, maximumFractionDigits: fiat==='BTC'?6:2})}`;
+                if(fiat!=='BTC' && fiat!=='UAH') fiatStr = `≈ ${sym}${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                if(fiat==='UAH' || fiat==='BTC') fiatStr += ` ${sym}`;
                 document.getElementById('fiat-balance').innerText = fiatStr;
                 document.getElementById('spot-val').innerText = `$${data.spot_usd.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
                 document.getElementById('bots-val').innerText = `$${data.trading_bots_usd.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
                 
-                // --- 2. ASSETS SECTION ---
+                // VIEW 2: ASSETS
                 const spotAssets = data.assets.filter(a => a.asset !== "Futures" && a.asset !== "Trading Bots" && a.total_usd > 1);
                 spotAssets.sort((a, b) => b.total_usd - a.total_usd);
                 const topAssets = spotAssets.slice(0, 3);
@@ -226,43 +270,44 @@
                 let assetsHtml = '';
                 topAssets.forEach(a => {
                     assetsHtml += `
-                    <div class="asset-item">
-                        <div class="asset-left">
-                            <div class="asset-name">${a.asset}</div>
-                            <div class="asset-price">$${a.price.toLocaleString('en-US', {maximumFractionDigits: 4})}</div>
+                    <div class="list-item">
+                        <div class="item-left">
+                            <div class="item-name">${a.asset}</div>
+                            <div class="item-sub">$${a.price.toLocaleString('en-US', {maximumFractionDigits: 4})}</div>
                         </div>
-                        <div class="asset-right">
-                            <div class="asset-total">$${a.total_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                            <div class="asset-amount">${parseFloat(a.total).toLocaleString()}</div>
+                        <div class="item-right">
+                            <div class="item-val">$${a.total_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                            <div class="item-sub">${parseFloat(a.total).toLocaleString()}</div>
                         </div>
                     </div>`;
                 });
                 document.getElementById('assets-list').innerHTML = assetsHtml;
 
-                // --- 3. BOTS SECTION ---
+                // VIEW 3: BOTS
                 const bots = data.assets.find(a => a.asset === "Trading Bots");
                 const futures = data.assets.find(a => a.asset === "Futures");
                 let botsHtml = '';
                 if (bots && bots.total_usd > 0) {
-                    botsHtml += `<div class="asset-item"><div class="asset-name" style="color:#FCD535;">🤖 АвтоБоты</div><div class="asset-total" style="color:#0ECB81;">$${bots.total_usd.toLocaleString('en-US', {maximumFractionDigits: 2})}</div></div>`;
+                    botsHtml += `<div class="list-item"><div class="item-name" style="color:#FCD535;">🤖 Bots</div><div class="item-val" style="color:#0ECB81;">$${bots.total_usd.toLocaleString('en-US', {maximumFractionDigits: 2})}</div></div>`;
                 }
                 if (futures && futures.total_usd > 0) {
-                    botsHtml += `<div class="asset-item"><div class="asset-name" style="color:#FF453A;">⚡ Фьючерсы</div><div class="asset-total" style="color:#0ECB81;">$${futures.total_usd.toLocaleString('en-US', {maximumFractionDigits: 2})}</div></div>`;
+                    botsHtml += `<div class="list-item"><div class="item-name" style="color:#FF453A;">⚡ Futures</div><div class="item-val" style="color:#0ECB81;">$${futures.total_usd.toLocaleString('en-US', {maximumFractionDigits: 2})}</div></div>`;
                 }
+                if (!botsHtml) botsHtml = `<div style="font-size:11px;color:#A0A0A5;text-align:center;margin-top:20px;">Нет активных ботов</div>`;
                 document.getElementById('bots-list').innerHTML = botsHtml;
 
-                document.getElementById('status-indicator').style.backgroundColor = "#0ECB81"; 
+                setStatus("#0ECB81", false);
 
             } catch (err) {
-                document.getElementById('status-indicator').style.backgroundColor = "#FF453A";
+                setStatus("#FF453A", false);
                 document.getElementById('usd-balance').innerText = "Ошибка";
-            } finally {
-                syncIcon.classList.remove('loading');
             }
         }
 
-        updateWidget();
-        setInterval(updateWidget, 30000);
+        updateData();
+        setInterval(updateData, 30000);
     </script>
+</body>
+</html>
 </body>
 </html>
