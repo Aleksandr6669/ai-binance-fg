@@ -551,6 +551,10 @@
 
             } catch (error) {
                 console.error("Error fetching data:", error);
+                document.getElementById('total-usd').innerText = "Ошибка API";
+                document.getElementById('total-usd').style.fontSize = "24px";
+                document.getElementById('total-fiat').innerText = error.message;
+                document.getElementById('total-fiat').style.color = "var(--accent-red)";
             } finally {
                 refreshBtn.style.animation = 'none';
             }
