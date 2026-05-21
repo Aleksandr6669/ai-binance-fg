@@ -5,19 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Binance Widget</title>
     <meta name="js-widget-title" content="Binance Balance">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body {
-            background-color: #000000;
+            background: linear-gradient(135deg, #1A1A1C 0%, #000000 100%);
             color: #FFFFFF;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            padding: 12px;
+            padding: 14px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             height: 100vh;
             overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* The whole body acts as a button */
+        .widget-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: transform 0.15s ease-out;
+            height: 100%;
+        }
+
+        .widget-container:active {
+            transform: scale(0.95);
         }
 
         .header {
@@ -28,18 +47,33 @@
 
         .title {
             font-size: 11px;
-            font-weight: 700;
-            color: #F3BA2F;
-            text-transform: uppercase;
+            font-weight: 800;
+            color: #FCD535;
             letter-spacing: 0.5px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
+
+        /* Refresh spinning icon */
+        .sync-icon {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .sync-icon.loading {
+            opacity: 1;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
         .status-dot {
             width: 8px;
             height: 8px;
             background-color: #0ECB81;
             border-radius: 50%;
-            box-shadow: 0 0 5px #0ECB81;
+            box-shadow: 0 0 8px rgba(14, 203, 129, 0.6);
+            transition: background-color 0.3s;
         }
 
         .balance-container {
@@ -47,27 +81,33 @@
             flex-direction: column;
             justify-content: center;
             flex-grow: 1;
+            margin-top: 4px;
         }
 
         .balance-usd {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 800;
-            margin-bottom: 2px;
-            letter-spacing: -0.5px;
+            margin-bottom: 0px;
+            letter-spacing: -1px;
+            text-shadow: 0 4px 12px rgba(255,255,255,0.1);
         }
 
         .balance-fiat {
-            font-size: 12px;
-            font-weight: 500;
-            color: #8E8E93;
+            font-size: 13px;
+            font-weight: 600;
+            color: #A0A0A5;
+            letter-spacing: 0.2px;
         }
 
         .footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-top: 1px solid #1C1C1E;
-            padding-top: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 8px 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+            backdrop-filter: blur(5px);
         }
 
         .footer-item {
@@ -77,14 +117,15 @@
 
         .footer-item span:first-child {
             font-size: 9px;
-            color: #8E8E93;
-            font-weight: 600;
+            color: #A0A0A5;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .footer-item span:last-child {
-            font-size: 11px;
-            font-weight: 700;
+            font-size: 13px;
+            font-weight: 800;
             color: #FFFFFF;
         }
 
@@ -95,33 +136,64 @@
             text-align: center;
             margin-top: 10px;
         }
+        
+        .overlay-link {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            z-index: 100;
+            color: white;
+            text-decoration: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        body:hover .overlay-link {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="title">Binance</div>
-        <div class="status-dot" id="status-indicator"></div>
-    </div>
+    <!-- Hidden back button to go to main app, visible on hover -->
+    <a href="/" class="overlay-link" title="Назад">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
 
-    <div class="balance-container">
-        <div class="balance-usd" id="usd-balance">Загрузка...</div>
-        <div class="balance-fiat" id="fiat-balance">-- UAH</div>
-        <div class="error" id="error-msg" style="display: none;"></div>
-    </div>
-
-    <div class="footer">
-        <div class="footer-item">
-            <span>Спот</span>
-            <span id="spot-val">--</span>
+    <!-- The entire widget is clickable -->
+    <div class="widget-container" onclick="updateWidget()">
+        <div class="header">
+            <div class="title">
+                Binance
+                <svg class="sync-icon" id="sync-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+            </div>
+            <div class="status-dot" id="status-indicator"></div>
         </div>
-        <div class="footer-item" style="text-align: right;">
-            <span>Боты</span>
-            <span id="bots-val">--</span>
+
+        <div class="balance-container">
+            <div class="balance-usd" id="usd-balance">Загрузка...</div>
+            <div class="balance-fiat" id="fiat-balance">-- UAH</div>
+            <div class="error" id="error-msg" style="display: none;"></div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-item">
+                <span>Спот</span>
+                <span id="spot-val">--</span>
+            </div>
+            <div class="footer-item" style="text-align: right;">
+                <span>Боты</span>
+                <span id="bots-val">--</span>
+            </div>
         </div>
     </div>
 
     <script>
-        // Use a lightweight function to log to WidgetWeb app if available
         function wLog(msg) {
             if (typeof __wweb2Log === "function") {
                 __wweb2Log(msg);
@@ -131,20 +203,24 @@
 
         async function updateWidget() {
             wLog("Starting widget update");
+            const syncIcon = document.getElementById('sync-icon');
+            syncIcon.classList.add('loading');
+            
             const key = localStorage.getItem('binance_api_key');
             const secret = localStorage.getItem('binance_api_secret');
 
             if (!key || !secret) {
                 document.getElementById('usd-balance').innerText = "Нет ключей";
-                document.getElementById('usd-balance').style.fontSize = "16px";
-                document.getElementById('fiat-balance').innerText = "Зайдите через браузер";
+                document.getElementById('usd-balance').style.fontSize = "18px";
+                document.getElementById('fiat-balance').innerText = "Зайдите через главное меню";
                 document.getElementById('status-indicator').style.backgroundColor = "#FF453A";
+                document.getElementById('status-indicator').style.boxShadow = "0 0 8px rgba(255, 69, 58, 0.6)";
+                syncIcon.classList.remove('loading');
                 wLog("API keys missing");
                 return;
             }
 
             try {
-                // Determine host, handling local debug vs vercel
                 const host = window.location.origin;
                 const response = await fetch(`${host}/api/portfolio?fiat=UAH`, {
                     method: 'GET',
@@ -155,7 +231,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP Error ${response.status}`);
+                    throw new Error(`HTTP ${response.status}`);
                 }
 
                 const data = await response.json();
@@ -167,22 +243,25 @@
                 document.getElementById('spot-val').innerText = `$${data.spot_usd.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
                 document.getElementById('bots-val').innerText = `$${data.trading_bots_usd.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
                 
-                document.getElementById('status-indicator').style.backgroundColor = "#0ECB81"; // Green
+                document.getElementById('status-indicator').style.backgroundColor = "#0ECB81"; 
+                document.getElementById('status-indicator').style.boxShadow = "0 0 8px rgba(14, 203, 129, 0.6)";
                 document.getElementById('error-msg').style.display = "none";
                 wLog("Widget updated successfully");
 
             } catch (err) {
                 wLog(`Error: ${err.message}`);
-                document.getElementById('status-indicator').style.backgroundColor = "#FF453A"; // Red
+                document.getElementById('status-indicator').style.backgroundColor = "#FF453A"; 
+                document.getElementById('status-indicator').style.boxShadow = "0 0 8px rgba(255, 69, 58, 0.6)";
                 document.getElementById('error-msg').innerText = err.message;
                 document.getElementById('error-msg').style.display = "block";
+            } finally {
+                syncIcon.classList.remove('loading');
             }
         }
 
         // Run immediately
         updateWidget();
-
-        // If the widget stays active on screen, refresh every 30 seconds
+        // Refresh every 30 seconds automatically
         setInterval(updateWidget, 30000);
     </script>
 </body>
