@@ -10,8 +10,8 @@
         
         html, body {
             margin: 0; padding: 0; width: 100vw; height: 100vh;
-            background: linear-gradient(135deg, #FCD535 0%, #F3BA2F 100%);
-            color: #121212;
+            background: #121212;
+            color: #FFFFFF;
             font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
             overflow: hidden;
             user-select: none;
@@ -19,18 +19,36 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        .widget-container {
-            width: 100vw; height: 100vh;
-            display: flex; flex-direction: column; justify-content: space-between;
-            position: relative;
-            cursor: pointer;
-            padding: 12px;
-            transition: transform 0.1s ease-out;
+        .widget-link {
+            display: block; width: 100vw; height: 100vh;
+            text-decoration: none; color: inherit;
+            display: flex; flex-direction: column;
         }
-        .widget-container:active { transform: scale(0.96); }
+
+        #widget-click-overlay {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999;
+            display: block; text-decoration: none; cursor: pointer;
+            --wweb2-overlay-btn-color: rgba(0, 0, 0, 0.0);
+            --wweb2-overlay-btn-press-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .page-content {
+            display: flex; flex-direction: column; width: 100vw; height: 100vh;
+        }
+
+        /* YELLOW HERO CARD (Fixed height to fill Small/Medium widget) */
+        .hero-section {
+            height: 155px; /* iOS Small/Medium widget height */
+            flex-shrink: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #FCD535 0%, #F3BA2F 100%);
+            color: #121212;
+            padding: 12px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            position: relative; overflow: hidden;
+        }
         
-        /* Glass shine effect inside hero */
-        .widget-container::after {
+        .hero-section::after {
             content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
             background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
             transform: skewX(-20deg); animation: shine 6s infinite; pointer-events: none;
@@ -40,26 +58,18 @@
 
         .header-top { display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative; }
         .title-group { display: flex; align-items: center; gap: 6px; }
-        .title-text { 
-            font-size: 11px; font-weight: 800; color: rgba(0,0,0,0.6); 
-            text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; 
-        }
+        .title-text { font-size: 11px; font-weight: 800; color: rgba(0,0,0,0.6); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
         
         .currency-badge {
             background: rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); color: #121212;
             font-weight: 800; font-size: 9px; padding: 3px 6px; border-radius: 6px;
-            display: flex; align-items: center; justify-content: center;
         }
         
-        .controls { display: flex; align-items: center; gap: 6px; }
-        .status-dot { width: 6px; height: 6px; background-color: #A0A0A5; border-radius: 50%; transition: background-color 0.3s; }
-        .sync-icon { opacity: 0; transition: opacity 0.3s; color: rgba(0,0,0,0.6); }
-        .sync-icon.loading { opacity: 1; animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .status-dot { width: 6px; height: 6px; background-color: #A0A0A5; border-radius: 50%; }
 
         .balance-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; z-index: 2; position: relative; }
-        .balance-usd { font-size: 26px; font-weight: 800; margin-bottom: 2px; letter-spacing: -1px; word-break: break-word; line-height: 1.1; }
-        .balance-fiat { font-size: 11px; font-weight: 700; color: rgba(0,0,0,0.6); }
+        .balance-usd { font-size: 28px; font-weight: 800; margin-bottom: 2px; letter-spacing: -1px; word-break: break-word; line-height: 1.1; }
+        .balance-fiat { font-size: 12px; font-weight: 700; color: rgba(0,0,0,0.6); }
 
         .hero-footer {
             display: flex; justify-content: space-between; align-items: center;
@@ -70,103 +80,113 @@
         .hf-item span:first-child { font-size: 8px; color: rgba(0,0,0,0.6); font-weight: 800; text-transform: uppercase; }
         .hf-item span:last-child { font-size: 11px; font-weight: 800; color: #121212; }
 
-        /* =========================================
-           RESPONSIVE WIDGET SIZES (MEDIA QUERIES)
-           ========================================= */
-
-        /* 1. SMALL WIDGET (< 200px) */
-        @media (max-width: 200px) {
-            .widget-container { padding: 10px; }
-            .balance-usd { font-size: 22px; }
-            .balance-fiat { font-size: 10px; }
-            .hero-footer { padding: 5px 8px; }
-            .hf-item span:first-child { font-size: 7px; }
-            .hf-item span:last-child { font-size: 10px; }
+        /* DARK ASSETS SECTION (Revealed only in Large widget) */
+        .lists-container {
+            flex-grow: 1;
+            padding: 12px;
+            display: flex; flex-direction: column; gap: 6px;
         }
+        
+        .section-title { font-size: 11px; font-weight: 800; color: #FCD535; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
 
-        /* 2. MEDIUM WIDGET (Wide, e.g., 329x155) */
-        @media (min-width: 250px) and (max-height: 200px) {
-            .widget-container { padding: 14px; }
-            .balance-usd { font-size: 32px; }
-            .balance-fiat { font-size: 13px; }
-            .hero-footer { padding: 8px 12px; }
-            .hf-item span:first-child { font-size: 9px; }
-            .hf-item span:last-child { font-size: 13px; }
+        .list-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.05); padding: 6px 8px; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.02);
         }
-
-        /* 3. LARGE WIDGET (Tall & Wide, e.g., 329x345) */
-        @media (min-width: 250px) and (min-height: 250px) {
-            .widget-container { padding: 20px; }
-            .title-text { font-size: 14px; }
-            .currency-badge { font-size: 12px; padding: 4px 8px; }
-            .balance-usd { font-size: 46px; margin-bottom: 6px; }
-            .balance-fiat { font-size: 16px; }
-            .hero-footer { padding: 14px 20px; border-radius: 12px; }
-            .hf-item span:first-child { font-size: 11px; }
-            .hf-item span:last-child { font-size: 18px; }
-            .status-dot { width: 8px; height: 8px; }
-        }
+        .item-left { display: flex; flex-direction: column; }
+        .item-name { font-size: 12px; font-weight: 800; color: #FFF; }
+        .item-sub { font-size: 9px; font-weight: 600; color: #A0A0A5; }
+        .item-right { display: flex; flex-direction: column; align-items: flex-end; }
+        .item-val { font-size: 12px; font-weight: 800; color: #FFF; }
 
     </style>
 </head>
 <body>
-    <div class="widget-container" onclick="cycleCurrency()">
-        
-        <div class="header-top">
-            <div class="title-group">
-                <div class="title-text">Binance</div>
-                <div class="currency-badge" id="currency-badge">UAH</div>
-            </div>
-            <div class="controls">
-                <svg class="sync-icon" id="sync-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+    <!-- Invisible overlay button for WidgetWeb native interaction -->
+    <a href="#action=cycle" id="widget-click-overlay" onclick="event.preventDefault(); cycleCurrency();"></a>
+    
+    <div class="page-content">
+        <!-- TOP SECTION (Visible in all sizes) -->
+        <div class="hero-section">
+            <div class="header-top">
+                <div class="title-group">
+                    <div class="title-text">Binance</div>
+                    <div class="currency-badge" id="currency-badge">UAH</div>
+                </div>
                 <div class="status-dot status-indicator"></div>
             </div>
+
+            <div class="balance-container">
+                <div class="balance-usd" id="usd-balance">Загрузка...</div>
+                <div class="balance-fiat" id="fiat-balance">--</div>
+            </div>
+
+            <div class="hero-footer">
+                <div class="hf-item"><span>Спот</span><span id="spot-val">--</span></div>
+                <div class="hf-item" style="text-align: right;"><span>Боты</span><span id="bots-val">--</span></div>
+            </div>
         </div>
 
-        <div class="balance-container">
-            <div class="balance-usd" id="usd-balance">Загрузка...</div>
-            <div class="balance-fiat" id="fiat-balance">--</div>
+        <!-- BOTTOM SECTION (Revealed in Large Widget) -->
+        <div class="lists-container">
+            <div class="section-title">Ваши Активы</div>
+            <div id="assets-list" style="display:flex; flex-direction:column; gap:6px;">
+                <div style="font-size: 11px; color:#A0A0A5; text-align:center; margin-top:10px;">Загрузка...</div>
+            </div>
         </div>
-
-        <div class="hero-footer">
-            <div class="hf-item"><span>Спот</span><span id="spot-val">--</span></div>
-            <div class="hf-item" style="text-align: right;"><span>Боты</span><span id="bots-val">--</span></div>
-        </div>
-
     </div>
 
     <script>
         const currencies = ['UAH', 'EUR', 'RUB', 'BTC'];
-        let currentCurrencyIdx = 0;
+        let currentCurrencyIdx = parseInt(localStorage.getItem('widget_cur_idx') || '0');
+        let isDataLoaded = false;
+
+        // WidgetWeb function to wait for JS to fetch data before taking screenshot
+        function __wweb2WaitMillisecondsToWidgetIsReady(currentDelayMs) {
+            return isDataLoaded ? 0 : 500;
+        }
+
+        // Process URL hash for WidgetWeb native taps exactly like TicTacToe
+        let queryString = window.location.hash;
+        if (queryString.startsWith("#")) {
+            queryString = queryString.substring(1);
+        }
+        const urlParams = new URLSearchParams(queryString);
+        const actionParam = urlParams.get('action');
+        if (actionParam === 'cycle') {
+            currentCurrencyIdx = (currentCurrencyIdx + 1) % currencies.length;
+            localStorage.setItem('widget_cur_idx', currentCurrencyIdx);
+        }
 
         function cycleCurrency() {
             currentCurrencyIdx = (currentCurrencyIdx + 1) % currencies.length;
-            const newFiat = currencies[currentCurrencyIdx];
-            document.getElementById('currency-badge').innerText = newFiat;
-            updateData(); // Instantly fetch new data
+            localStorage.setItem('widget_cur_idx', currentCurrencyIdx);
+            document.getElementById('currency-badge').innerText = currencies[currentCurrencyIdx];
+            updateData();
         }
 
-        function setStatus(color, isLoad) {
+        function setStatus(color) {
             document.querySelectorAll('.status-indicator').forEach(el => {
                 el.style.backgroundColor = color;
-                el.style.boxShadow = color === '#0ECB81' ? '0 0 6px rgba(14,203,129,0.6)' : 'none';
             });
-            const syncIcon = document.getElementById('sync-icon');
-            if (isLoad) syncIcon.classList.add('loading');
-            else syncIcon.classList.remove('loading');
         }
 
         async function updateData() {
-            setStatus("#FFFFFF", true); // White dot when loading
+            isDataLoaded = false;
+            setStatus("#FFFFFF");
             
             const key = localStorage.getItem('binance_api_key');
             const secret = localStorage.getItem('binance_api_secret');
             const fiat = currencies[currentCurrencyIdx];
             const sym = { 'UAH':'₴', 'EUR':'€', 'RUB':'₽', 'BTC':'₿' }[fiat] || fiat;
 
+            document.getElementById('currency-badge').innerText = fiat;
+
             if (!key || !secret) {
-                document.getElementById('usd-balance').innerText = "Нет ключей";
-                setStatus("#FF453A", false);
+                document.getElementById('usd-balance').innerText = "Нет API";
+                setStatus("#FF453A");
+                isDataLoaded = true;
                 return;
             }
 
@@ -179,26 +199,56 @@
                 const data = await response.json();
                 if (data.error) throw new Error(data.error);
 
+                // HERO
                 document.getElementById('usd-balance').innerText = `$${data.total_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                
                 let fiatStr = `≈ ${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: fiat==='BTC'?6:2, maximumFractionDigits: fiat==='BTC'?6:2})}`;
                 if (fiat !== 'BTC' && fiat !== 'UAH') fiatStr = `≈ ${sym}${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
                 if (fiat === 'UAH' || fiat === 'BTC') fiatStr += ` ${sym}`;
-                
                 document.getElementById('fiat-balance').innerText = fiatStr;
                 document.getElementById('spot-val').innerText = `$${data.spot_usd.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
                 document.getElementById('bots-val').innerText = `$${data.trading_bots_usd.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
                 
-                setStatus("#0ECB81", false); // Green dot success
+                // ASSETS (For large widget)
+                const spotAssets = data.assets.filter(a => a.asset !== "Futures" && a.asset !== "Trading Bots" && a.total_usd > 1);
+                spotAssets.sort((a, b) => b.total_usd - a.total_usd);
+                const topAssets = spotAssets.slice(0, 3);
+                
+                let assetsHtml = '';
+                topAssets.forEach(a => {
+                    assetsHtml += `
+                    <div class="list-item">
+                        <div class="item-left">
+                            <div class="item-name">${a.asset}</div>
+                            <div class="item-sub">$${a.price.toLocaleString('en-US', {maximumFractionDigits: 4})}</div>
+                        </div>
+                        <div class="item-right">
+                            <div class="item-val">$${a.total_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                            <div class="item-sub">${parseFloat(a.total).toLocaleString()}</div>
+                        </div>
+                    </div>`;
+                });
+                
+                // Add Bots & Futures to the bottom of the list
+                const bots = data.assets.find(a => a.asset === "Trading Bots");
+                const futures = data.assets.find(a => a.asset === "Futures");
+                if (bots && bots.total_usd > 0) {
+                    assetsHtml += `<div class="list-item"><div class="item-name" style="color:#FCD535;">🤖 АвтоБоты</div><div class="item-val" style="color:#0ECB81;">$${bots.total_usd.toLocaleString('en-US', {maximumFractionDigits: 2})}</div></div>`;
+                }
+                if (futures && futures.total_usd > 0) {
+                    assetsHtml += `<div class="list-item"><div class="item-name" style="color:#FF453A;">⚡ Фьючерсы</div><div class="item-val" style="color:#0ECB81;">$${futures.total_usd.toLocaleString('en-US', {maximumFractionDigits: 2})}</div></div>`;
+                }
+
+                document.getElementById('assets-list').innerHTML = assetsHtml;
+                setStatus("#0ECB81"); 
 
             } catch (err) {
-                setStatus("#FF453A", false); // Red dot error
-                document.getElementById('usd-balance').innerText = "Ошибка сети";
+                setStatus("#FF453A"); 
+                document.getElementById('usd-balance').innerText = "Ошибка";
+            } finally {
+                isDataLoaded = true; // Tell WidgetWeb we are ready for screenshot
             }
         }
 
-        // Initialize
-        document.getElementById('currency-badge').innerText = currencies[currentCurrencyIdx];
         updateData();
         setInterval(updateData, 30000);
     </script>
