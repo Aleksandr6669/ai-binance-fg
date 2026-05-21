@@ -12,11 +12,8 @@
             color: #FFFFFF;
             font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            padding: 14px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            padding: 0;
+            width: 100vw;
             height: 100vh;
             overflow: hidden;
             user-select: none;
@@ -26,13 +23,15 @@
 
         /* The whole body acts as a button */
         .widget-container {
-            flex-grow: 1;
+            width: 100%;
+            height: 100%;
+            padding: 12px;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             cursor: pointer;
             transition: transform 0.15s ease-out;
-            height: 100%;
         }
 
         .widget-container:active {
@@ -46,7 +45,7 @@
         }
 
         .title {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 800;
             color: #FCD535;
             letter-spacing: 0.5px;
@@ -68,11 +67,11 @@
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             background-color: #0ECB81;
             border-radius: 50%;
-            box-shadow: 0 0 8px rgba(14, 203, 129, 0.6);
+            box-shadow: 0 0 6px rgba(14, 203, 129, 0.6);
             transition: background-color 0.3s;
         }
 
@@ -81,22 +80,22 @@
             flex-direction: column;
             justify-content: center;
             flex-grow: 1;
-            margin-top: 4px;
         }
 
         .balance-usd {
-            font-size: 32px;
+            font-size: 22px;
             font-weight: 800;
-            margin-bottom: 0px;
-            letter-spacing: -1px;
-            text-shadow: 0 4px 12px rgba(255,255,255,0.1);
+            margin-bottom: 2px;
+            letter-spacing: -0.5px;
+            text-shadow: 0 4px 10px rgba(255,255,255,0.1);
+            word-break: break-word;
+            line-height: 1.1;
         }
 
         .balance-fiat {
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 600;
             color: #A0A0A5;
-            letter-spacing: 0.2px;
         }
 
         .footer {
@@ -104,10 +103,9 @@
             justify-content: space-between;
             align-items: center;
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 8px 12px;
+            border-radius: 8px;
+            padding: 6px 10px;
             border: 1px solid rgba(255,255,255,0.05);
-            backdrop-filter: blur(5px);
         }
 
         .footer-item {
@@ -116,15 +114,14 @@
         }
 
         .footer-item span:first-child {
-            font-size: 9px;
+            font-size: 8px;
             color: #A0A0A5;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         .footer-item span:last-child {
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 800;
             color: #FFFFFF;
         }
