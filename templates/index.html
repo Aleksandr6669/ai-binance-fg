@@ -269,6 +269,7 @@
         .badge-funding { color: var(--accent-blue); background: rgba(41, 98, 255, 0.15); border: 1px solid rgba(41, 98, 255, 0.2); }
         .badge-bots { color: var(--accent-yellow); background: rgba(243, 186, 47, 0.15); border: 1px solid rgba(243, 186, 47, 0.2); }
         .badge-futures { color: var(--accent-red); background: rgba(246, 70, 93, 0.15); border: 1px solid rgba(246, 70, 93, 0.2); }
+        .badge-earn { color: #FF9800; background: rgba(255, 152, 0, 0.15); border: 1px solid rgba(255, 152, 0, 0.2); }
 
         .asset-amounts {
             display: flex;
@@ -454,6 +455,10 @@
                     <div id="funding-usd">$0.00</div>
                 </div>
                 <div class="sub-balance-item">
+                    <span>Earn</span>
+                    <div id="earn-usd">$0.00</div>
+                </div>
+                <div class="sub-balance-item">
                     <span>Боты</span>
                     <div id="bots-usd">$0.00</div>
                 </div>
@@ -579,6 +584,7 @@
 
             document.getElementById('spot-usd').innerText = `$${data.spot_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             document.getElementById('funding-usd').innerText = `$${data.funding_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('earn-usd').innerText = `$${data.earn_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             document.getElementById('bots-usd').innerText = `$${data.trading_bots_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             document.getElementById('futures-usd').innerText = `$${data.futures_usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
@@ -589,9 +595,11 @@
             data.assets.forEach(asset => {
                 let badgeClass = 'badge-spot';
                 let badgeText = 'СПОТ';
+                if (asset.type === 'spot') { badgeClass = 'badge-spot'; badgeText = 'СПОТ'; }
                 if (asset.type === 'funding') { badgeClass = 'badge-funding'; badgeText = 'ФАНД'; }
                 if (asset.type === 'trading_bots') { badgeClass = 'badge-bots'; badgeText = 'БОТ'; }
                 if (asset.type === 'futures') { badgeClass = 'badge-futures'; badgeText = 'ФЬЮЧ'; }
+                if (asset.type === 'earn') { badgeClass = 'badge-earn'; badgeText = 'EARN'; }
 
                 const card = document.createElement('div');
                 card.className = 'asset-card';

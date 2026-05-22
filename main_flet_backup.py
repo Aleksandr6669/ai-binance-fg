@@ -37,10 +37,12 @@ def main(page: ft.Page):
     total_usd = 0.0
     spot_usd = 0.0
     funding_usd = 0.0
+    earn_usd = 0.0
     trading_bots_usd = 0.0
     futures_usd = 0.0
     spot_error = None
     funding_error = None
+    earn_error = None
     
     current_currency = "UAH"
     fiat_rates = {"UAH": 40.2, "EUR": 0.92, "RUB": 91.5, "BTC": 0.00001}
@@ -165,6 +167,7 @@ def main(page: ft.Page):
     secondary_val_txt = ft.Text("≈ 0.00 UAH", size=18, weight=ft.FontWeight.W_500, color="#181A20", opacity=0.8)
     spot_val_txt = ft.Text("Спот: $0.00", size=13, weight=ft.FontWeight.W_600, color="#181A20")
     funding_val_txt = ft.Text("Пополнение: $0.00", size=13, weight=ft.FontWeight.W_600, color="#181A20")
+    earn_val_txt = ft.Text("Earn: $0.00", size=13, weight=ft.FontWeight.W_600, color="#181A20")
     bots_val_txt = ft.Text("Боты: $0.00", size=13, weight=ft.FontWeight.W_600, color="#181A20")
     futures_val_txt = ft.Text("Фьючерсы: $0.00", size=13, weight=ft.FontWeight.W_600, color="#181A20")
     
@@ -260,6 +263,8 @@ def main(page: ft.Page):
                         ft.Row(controls=[ft.Container(width=8, height=8, border_radius=4, bgcolor="#02C076"), spot_val_txt], spacing=6),
                         ft.VerticalDivider(color="#181A20", opacity=0.2),
                         ft.Row(controls=[ft.Container(width=8, height=8, border_radius=4, bgcolor="#00C0FF"), funding_val_txt], spacing=6),
+                        ft.VerticalDivider(color="#181A20", opacity=0.2),
+                        ft.Row(controls=[ft.Container(width=8, height=8, border_radius=4, bgcolor="#FF9800"), earn_val_txt], spacing=6),
                         ft.VerticalDivider(color="#181A20", opacity=0.2),
                         ft.Row(controls=[ft.Container(width=8, height=8, border_radius=4, bgcolor="#181A20", opacity=0.7), bots_val_txt], spacing=6),
                         ft.VerticalDivider(color="#181A20", opacity=0.2),
@@ -392,6 +397,9 @@ def main(page: ft.Page):
         elif wallet_name == "Funding":
             tag_text = "ФАНД"
             tag_color = "#00C0FF"
+        elif wallet_name == "Earn":
+            tag_text = "EARN"
+            tag_color = "#FF9800"
         elif wallet_name == "Trading Bots":
             tag_text = "БОТ"
             tag_color = "#F3BA2F"
@@ -480,7 +488,7 @@ def main(page: ft.Page):
     # ------------------ Core Business Logic ------------------
     
     def fetch_balances_thread():
-        nonlocal assets_data, total_usd, spot_usd, funding_usd, trading_bots_usd, futures_usd, spot_error, funding_error, fiat_rates
+        nonlocal assets_data, total_usd, spot_usd, funding_usd, earn_usd, trading_bots_usd, futures_usd, spot_error, funding_error, earn_error, fiat_rates
         
         # Set UI to loading state
         loading_container.visible = True
@@ -498,10 +506,12 @@ def main(page: ft.Page):
             total_usd = data["total_usd"]
             spot_usd = data["spot_usd"]
             funding_usd = data["funding_usd"]
+            earn_usd = data.get("earn_usd", 0.0)
             trading_bots_usd = data.get("trading_bots_usd", 0.0)
             futures_usd = data.get("futures_usd", 0.0)
             spot_error = data["spot_error"]
             funding_error = data["funding_error"]
+            earn_error = data.get("earn_error")
             if "fiat_rates" in data:
                 fiat_rates = data["fiat_rates"]
             
@@ -515,15 +525,15 @@ def main(page: ft.Page):
             status_dot.bgcolor = "#02C076"
             
             # Inform users of partial permissions issues (e.g. Funding wallet access disabled on API key)
-            if spot_error or funding_error:
+            if spot_error or funding_error or earn_error:
                 status_dot.bgcolor = "#FFB100"
-                if spot_error and funding_error:
+                if spot_error and funding_error and earn_error:
                     status_dot.bgcolor = "#F84960"
                     status_text.value = "Ошибка подключения"
                 else:
                     status_text.value = "Частичный доступ"
                     # Notify user of restrictions (e.g. lack of funding permissions)
-                    err_msg = spot_error or funding_error
+                    err_msg = spot_error or funding_error or earn_error
                     page.show_snack_bar(
                         ft.SnackBar(
                             content=ft.Text(f"Предупреждение: {err_msg}", color="#181A20", weight=ft.FontWeight.W_500),
@@ -563,7 +573,7 @@ def main(page: ft.Page):
             page.update()
 
     def fetch_balances_silent():
-        nonlocal assets_data, total_usd, spot_usd, funding_usd, trading_bots_usd, futures_usd, spot_error, funding_error, fiat_rates
+        nonlocal assets_data, total_usd, spot_usd, funding_usd, earn_usd, trading_bots_usd, futures_usd, spot_error, funding_error, earn_error, fiat_rates
         try:
             # Query the portfolio silently
             data = client.get_full_portfolio()
@@ -571,17 +581,19 @@ def main(page: ft.Page):
             total_usd = data["total_usd"]
             spot_usd = data["spot_usd"]
             funding_usd = data["funding_usd"]
+            earn_usd = data.get("earn_usd", 0.0)
             trading_bots_usd = data.get("trading_bots_usd", 0.0)
             futures_usd = data.get("futures_usd", 0.0)
             spot_error = data["spot_error"]
             funding_error = data["funding_error"]
+            earn_error = data.get("earn_error")
             if "fiat_rates" in data:
                 fiat_rates = data["fiat_rates"]
             
             # Handle key status indicator without triggering popup notifications
-            if spot_error or funding_error:
+            if spot_error or funding_error or earn_error:
                 status_dot.bgcolor = "#FFB100"
-                if spot_error and funding_error:
+                if spot_error and funding_error and earn_error:
                     status_dot.bgcolor = "#F84960"
                     status_text.value = "Ошибка подключения"
                 else:
@@ -639,12 +651,14 @@ def main(page: ft.Page):
         total_val_txt.value = f"${total_usd:,.2f}"
         spot_val_txt.value = f"Спот: ${spot_usd:,.2f}"
         funding_val_txt.value = f"Пополнение: ${funding_usd:,.2f}"
+        earn_val_txt.value = f"Earn: ${earn_usd:,.2f}"
         bots_val_txt.value = f"Боты: ${trading_bots_usd:,.2f}"
         futures_val_txt.value = f"Фьючерсы: ${futures_usd:,.2f}"
         
         total_val_txt.update()
         spot_val_txt.update()
         funding_val_txt.update()
+        earn_val_txt.update()
         bots_val_txt.update()
         futures_val_txt.update()
         
@@ -738,11 +752,12 @@ def main(page: ft.Page):
         live_badge.visible = False
         
         # Clean local cache state
-        nonlocal assets_data, total_usd, spot_usd, funding_usd, trading_bots_usd, futures_usd
+        nonlocal assets_data, total_usd, spot_usd, funding_usd, earn_usd, trading_bots_usd, futures_usd
         assets_data = []
         total_usd = 0.0
         spot_usd = 0.0
         funding_usd = 0.0
+        earn_usd = 0.0
         trading_bots_usd = 0.0
         futures_usd = 0.0
         

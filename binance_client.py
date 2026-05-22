@@ -153,17 +153,82 @@ class BinanceClient:
         response.raise_for_status()
         return response.json()
 
+    def get_earn_balances(self, time_offset: int = 0) -> list:
+        """Fetch Simple Earn flexible and locked balances."""
+        if not self.api_key or not self.api_secret:
+            raise ValueError("API Key and Secret must be provided")
+            
+        timestamp = int(time.time() * 1000) + time_offset
+        query_string = f"timestamp={timestamp}&recvWindow=60000"
+        signature = self._sign_query(query_string)
+        headers = self._get_signed_headers()
+        
+        balances = {}
+        
+        # 1. Flexible Earn positions
+        try:
+            url_flex = f"{self.BASE_URL}/sapi/v1/simple-earn/flexible/position?{query_string}&signature={signature}"
+            response = requests.get(url_flex, headers=headers, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                for row in data.get("rows", []):
+                    asset = row.get("asset")
+                    amount = float(row.get("totalAmount", 0.0))
+                    if amount > 0.000001:
+                        balances[asset] = balances.get(asset, 0.0) + amount
+            elif response.status_code == 401:
+                raise PermissionError("Invalid API Key or Secret")
+            elif response.status_code == 403:
+                print("API key does not have permission to access Simple Earn Flexible positions.")
+        except Exception as e:
+            print(f"Error fetching flexible earn positions: {e}")
+            if "Invalid API Key" in str(e) or "401" in str(e):
+                raise
+            
+        # 2. Locked Earn positions
+        try:
+            url_locked = f"{self.BASE_URL}/sapi/v1/simple-earn/locked/position?{query_string}&signature={signature}"
+            response = requests.get(url_locked, headers=headers, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                for row in data.get("rows", []):
+                    asset = row.get("asset")
+                    amount = float(row.get("amount", 0.0))
+                    if amount > 0.000001:
+                        balances[asset] = balances.get(asset, 0.0) + amount
+            elif response.status_code == 401:
+                raise PermissionError("Invalid API Key or Secret")
+            elif response.status_code == 403:
+                print("API key does not have permission to access Simple Earn Locked positions.")
+        except Exception as e:
+            print(f"Error fetching locked earn positions: {e}")
+            if "Invalid API Key" in str(e) or "401" in str(e):
+                raise
+            
+        earn_list = []
+        for asset, amount in balances.items():
+            earn_list.append({
+                "asset": asset,
+                "free": amount,
+                "locked": 0.0,
+                "total": amount,
+                "wallet": "Earn"
+            })
+        return earn_list
+
     def get_full_portfolio(self) -> dict:
-        """Fetch and aggregate Spot, Funding, Trading Bots, and Futures balances with conversion to USD."""
+        """Fetch and aggregate Spot, Funding, Trading Bots, Futures, and Earn balances with conversion to USD."""
         time_offset = self._get_server_time_offset()
         prices = self.get_ticker_prices()
         
         spot_error = None
         funding_error = None
         wallet_error = None
+        earn_error = None
         spot_balances = []
         funding_balances = []
         wallet_balances = []
+        earn_balances = []
         
         try:
             spot_balances = self.get_spot_balances(time_offset)
@@ -173,7 +238,6 @@ class BinanceClient:
         try:
             funding_balances = self.get_funding_balances(time_offset)
         except Exception as e:
-            # If Funding fails but Spot succeeds, we want to proceed and let user know about the Funding restriction
             funding_error = str(e)
             
         try:
@@ -181,15 +245,20 @@ class BinanceClient:
         except Exception as e:
             wallet_error = str(e)
             
-        if spot_error and funding_error and wallet_error:
-            # If all failed, we cannot show any portfolio
-            raise Exception(f"Could not load balances:\nSpot: {spot_error}\nFunding: {funding_error}\nWallet: {wallet_error}")
+        try:
+            earn_balances = self.get_earn_balances(time_offset)
+        except Exception as e:
+            earn_error = str(e)
+            
+        if spot_error and funding_error and wallet_error and earn_error:
+            raise Exception(f"Could not load balances:\nSpot: {spot_error}\nFunding: {funding_error}\nWallet: {wallet_error}\nEarn: {earn_error}")
             
         aggregated = []
         spot_usd = 0.0
         funding_usd = 0.0
         trading_bots_usd = 0.0
         futures_usd = 0.0
+        earn_usd = 0.0
         
         def get_usd_value(asset, amount):
             if asset in ("USDT", "USDC", "BUSD", "USD"):
@@ -226,7 +295,8 @@ class BinanceClient:
             aggregated.append({
                 **asset_data,
                 "usd_value": val,
-                "price": price
+                "price": price,
+                "type": "spot"
             })
             
         for asset_data in funding_balances:
@@ -236,7 +306,19 @@ class BinanceClient:
             aggregated.append({
                 **asset_data,
                 "usd_value": val,
-                "price": price
+                "price": price,
+                "type": "funding"
+            })
+            
+        for asset_data in earn_balances:
+            val = get_usd_value(asset_data["asset"], asset_data["total"])
+            price = val / asset_data["total"] if asset_data["total"] > 0 else 0.0
+            earn_usd += val
+            aggregated.append({
+                **asset_data,
+                "usd_value": val,
+                "price": price,
+                "type": "earn"
             })
             
         # Parse specialized Trading Bots and Futures wallets from unified wallet balances
@@ -275,7 +357,7 @@ class BinanceClient:
             
         aggregated.sort(key=lambda x: x["usd_value"], reverse=True)
         
-        total_usd = spot_usd + funding_usd + trading_bots_usd + futures_usd
+        total_usd = spot_usd + funding_usd + trading_bots_usd + futures_usd + earn_usd
         for asset_data in aggregated:
             asset_data["percentage"] = (asset_data["usd_value"] / total_usd * 100.0) if total_usd > 0 else 0.0
             
@@ -292,13 +374,10 @@ class BinanceClient:
             res = requests.get("https://open.er-api.com/v6/latest/USD", timeout=3)
             if res.status_code == 200:
                 ext_rates = res.json().get("rates", {})
-                # Use official bank rates for UAH and EUR to match standard display expectations
                 if "UAH" in ext_rates:
                     fiat_rates["UAH"] = ext_rates["UAH"]
                 if "EUR" in ext_rates:
                     fiat_rates["EUR"] = ext_rates["EUR"]
-                # For RUB, we intentionally prefer the free-market Binance rate (USDTRUB) 
-                # because the official rate is artificial due to capital controls.
         except Exception as e:
             print(f"Error fetching external exchange rates: {e}")
         
@@ -309,8 +388,10 @@ class BinanceClient:
             "funding_usd": funding_usd,
             "trading_bots_usd": trading_bots_usd,
             "futures_usd": futures_usd,
+            "earn_usd": earn_usd,
             "spot_error": spot_error,
             "funding_error": funding_error or wallet_error,
+            "earn_error": earn_error,
             "fiat_rates": fiat_rates
         }
 
