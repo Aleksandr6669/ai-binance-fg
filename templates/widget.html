@@ -137,7 +137,7 @@
                 </div>
                 <div class="hero-footer">
                     <div class="hf-item"><span>Спот</span><span class="spot-text">--</span></div>
-                    <div class="hf-item" style="text-align: right;"><span>Боты</span><span class="bots-text">--</span></div>
+                    <div class="hf-item" style="text-align: right;"><span>Earn</span><span class="earn-text">--</span></div>
                 </div>
             </div>
         </a>
@@ -161,6 +161,7 @@
                 </div>
                 <div class="hero-footer">
                     <div class="hf-item"><span>Спот</span><span class="spot-text">--</span></div>
+                    <div class="hf-item" style="text-align: center;"><span>Earn</span><span class="earn-text">--</span></div>
                     <div class="hf-item" style="text-align: right;"><span>Боты</span><span class="bots-text">--</span></div>
                 </div>
             </div>
@@ -185,6 +186,7 @@
                 </div>
                 <div class="hero-footer">
                     <div class="hf-item"><span>Спот</span><span class="spot-text">--</span></div>
+                    <div class="hf-item" style="text-align: center;"><span>Earn</span><span class="earn-text">--</span></div>
                     <div class="hf-item" style="text-align: right;"><span>Боты</span><span class="bots-text">--</span></div>
                 </div>
             </div>
@@ -197,29 +199,7 @@
         </a>
     </div>
 
-    <script>
-        const currencies = ['UAH', 'EUR', 'RUB', 'BTC'];
-        let currentCurrencyIdx = parseInt(localStorage.getItem('widget_cur_idx') || '0');
-        let isDataLoaded = false;
 
-        // WidgetWeb function to wait for JS to fetch data before taking screenshot
-        function __wweb2WaitMillisecondsToWidgetIsReady(currentDelayMs) {
-            return isDataLoaded ? 0 : 500;
-        }
-
-        // Process URL hash for WidgetWeb native taps exactly like TicTacToe
-        let queryString = window.location.hash;
-        if (queryString.startsWith("#")) {
-            queryString = queryString.substring(1);
-        }
-        const urlParams = new URLSearchParams(queryString);
-        const actionParam = urlParams.get('action');
-        if (actionParam === 'cycle') {
-            currentCurrencyIdx = (currentCurrencyIdx + 1) % currencies.length;
-            localStorage.setItem('widget_cur_idx', currentCurrencyIdx);
-        }
-
-    <script>
         const currencies = ['UAH', 'EUR', 'RUB', 'BTC'];
         let currentCurrencyIdx = parseInt(localStorage.getItem('widget_cur_idx') || '0');
         if (isNaN(currentCurrencyIdx)) currentCurrencyIdx = 0;
@@ -293,11 +273,13 @@
                 if (fiat !== 'BTC' && fiat !== 'UAH') fiatStr = `≈ ${sym}${data.total_fiat.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
                 if (fiat === 'UAH' || fiat === 'BTC') fiatStr += ` ${sym}`;
                 const spotStr = `$${data.spot_usd.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+                const earnStr = `$${data.earn_usd.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
                 const botsStr = `$${data.trading_bots_usd.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
 
                 document.querySelectorAll('.usd-text').forEach(el => el.innerText = usdStr);
                 document.querySelectorAll('.fiat-text').forEach(el => el.innerText = fiatStr);
                 document.querySelectorAll('.spot-text').forEach(el => el.innerText = spotStr);
+                document.querySelectorAll('.earn-text').forEach(el => el.innerText = earnStr);
                 document.querySelectorAll('.bots-text').forEach(el => el.innerText = botsStr);
                 
                 const spotAssets = data.assets.filter(a => a.asset !== "Futures" && a.asset !== "Trading Bots" && a.total_usd > 1);
@@ -306,10 +288,11 @@
                 
                 let assetsHtml = '';
                 topAssets.forEach(a => {
+                    const walletSuffix = a.wallet && a.wallet !== 'Spot' ? `<span style="font-size:9px; opacity:0.6; padding-left:4px;">(${a.wallet})</span>` : '';
                     assetsHtml += `
                     <div class="list-item">
                         <div class="item-left">
-                            <div class="item-name">${a.asset}</div>
+                            <div class="item-name">${a.asset}${walletSuffix}</div>
                             <div class="item-sub">$${a.price.toLocaleString('en-US', {maximumFractionDigits: 4})}</div>
                         </div>
                         <div class="item-right">
