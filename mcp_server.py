@@ -1,4 +1,4 @@
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 from binance_client import BinanceClient
 
 # Create an MCP server
