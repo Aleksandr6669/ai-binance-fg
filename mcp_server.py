@@ -90,7 +90,7 @@ if __name__ == "__main__":
         from starlette.middleware.cors import CORSMiddleware
         
         # Получаем ASGI приложение из FastMCP
-        app = mcp.http_app()
+        app = mcp.http_app(transport="sse")
         # Обертываем его в CORS middleware для корректной работы Gemini и браузеров
         cors_app = CORSMiddleware(
             app=app,
