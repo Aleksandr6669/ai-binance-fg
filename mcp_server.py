@@ -1,11 +1,8 @@
 from fastmcp import FastMCP
-from starlette.middleware import Middleware
-from starlette.middleware.cors import CORSMiddleware
 from binance_client import BinanceClient
 
 # Create an MCP server
 mcp = FastMCP("Binance Trading Server")
-mcp.add_middleware(Middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"]))
 
 @mcp.tool()
 def get_binance_balance(api_key: str, api_secret: str, proxy: str = None) -> dict:
@@ -86,15 +83,25 @@ def get_current_ip(proxy: str = None) -> dict:
 
 if __name__ == "__main__":
     import os
-    
-    # Render.com, Railway, Heroku и другие облака автоматически задают переменную PORT.
-    # Hugging Face использует SPACE_ID.
-    is_cloud = os.environ.get("PORT") or os.environ.get("RENDER") or os.environ.get("SPACE_ID")
-    
-    if is_cloud:
-        port = int(os.environ.get("PORT", 7860))
-        print(f"Starting cloud MCP server (SSE) on port {port}...")
-        mcp.run(transport='sse', host='0.0.0.0', port=port)
+    # Если скрипт запущен на Hugging Face Spaces или Render, запускаем SSE-сервер на нужном порту
+    if os.environ.get("SPACE_ID") or os.environ.get("RENDER"):
+        print("Starting on HF Spaces or Render using SSE...")
+        import uvicorn
+        from starlette.middleware.cors import CORSMiddleware
+        
+        # Получаем ASGI приложение из FastMCP
+        app = mcp.http_app()
+        # Обертываем его в CORS middleware для корректной работы Gemini и браузеров
+        cors_app = CORSMiddleware(
+            app=app,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        
+        port = int(os.environ.get("PORT", 8000))
+        uvicorn.run(cors_app, host="0.0.0.0", port=port)
     else:
         # Иначе запускаем стандартный локальный stdio сервер
         mcp.run()
