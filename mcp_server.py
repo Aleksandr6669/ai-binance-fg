@@ -88,9 +88,23 @@ if __name__ == "__main__":
         print("Starting on HF Spaces or Render using SSE...")
         import uvicorn
         from starlette.middleware.cors import CORSMiddleware
+        from starlette.middleware.base import BaseHTTPMiddleware
+        from starlette.responses import JSONResponse
         
+        class LoggingMiddleware(BaseHTTPMiddleware):
+            async def dispatch(self, request, call_next):
+                print(f"INCOMING REQUEST: {request.method} {request.url.path}")
+                if request.url.path == "/":
+                    return JSONResponse({"status": "ok", "message": "MCP Server is running"})
+                response = await call_next(request)
+                print(f"RESPONSE STATUS: {response.status_code}")
+                return response
+
         # Получаем ASGI приложение из FastMCP
         app = mcp.http_app(transport="sse")
+        
+        app.add_middleware(LoggingMiddleware)
+        
         # Обертываем его в CORS middleware для корректной работы Gemini и браузеров
         cors_app = CORSMiddleware(
             app=app,
