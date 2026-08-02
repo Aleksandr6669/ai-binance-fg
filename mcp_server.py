@@ -1,8 +1,11 @@
 from fastmcp import FastMCP
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 from binance_client import BinanceClient
 
 # Create an MCP server
-mcp = FastMCP("Binance")
+mcp = FastMCP("Binance Trading Server")
+mcp.add_middleware(Middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"]))
 
 @mcp.tool()
 def get_binance_balance(api_key: str, api_secret: str, proxy: str = None) -> dict:
