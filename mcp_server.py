@@ -94,15 +94,13 @@ if __name__ == "__main__":
         class LoggingMiddleware(BaseHTTPMiddleware):
             async def dispatch(self, request, call_next):
                 print(f"INCOMING REQUEST: {request.method} {request.url.path}")
-                if request.url.path == "/":
-                    return JSONResponse({"status": "ok", "message": "MCP Server is running"})
                 response = await call_next(request)
                 print(f"RESPONSE STATUS: {response.status_code}")
                 return response
 
         # Получаем ASGI приложение из FastMCP
-        # Используем transport="http" и путь "/gemini", чтобы Gemini мог отправлять POST запросы
-        app = mcp.http_app(transport="http", path="/gemini")
+        # Используем transport="http" и путь "/"
+        app = mcp.http_app(transport="http", path="/")
         
         app.add_middleware(LoggingMiddleware)
         
