@@ -83,10 +83,15 @@ def get_current_ip(proxy: str = None) -> dict:
 
 if __name__ == "__main__":
     import os
-    # Если скрипт запущен на Hugging Face Spaces, запускаем SSE-сервер на порту 7860
-    if os.environ.get("SPACE_ID"):
-        print("Starting on Hugging Face Spaces (SSE on port 7860)...")
-        mcp.run(transport='sse', host='0.0.0.0', port=7860)
+    
+    # Render.com, Railway, Heroku и другие облака автоматически задают переменную PORT.
+    # Hugging Face использует SPACE_ID.
+    is_cloud = os.environ.get("PORT") or os.environ.get("RENDER") or os.environ.get("SPACE_ID")
+    
+    if is_cloud:
+        port = int(os.environ.get("PORT", 7860))
+        print(f"Starting cloud MCP server (SSE) on port {port}...")
+        mcp.run(transport='sse', host='0.0.0.0', port=port)
     else:
-        # Иначе запускаем стандартный stdio сервер
+        # Иначе запускаем стандартный локальный stdio сервер
         mcp.run()
