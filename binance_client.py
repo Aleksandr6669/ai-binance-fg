@@ -5,10 +5,15 @@ import requests
 
 class BinanceClient:
     BASE_URL = "https://api.binance.com"
+    FAPI_URL = "https://fapi.binance.com"
     
-    def __init__(self, api_key: str = "", api_secret: str = ""):
+    def __init__(self, api_key: str = "", api_secret: str = "", proxy: str = None):
         self.api_key = api_key
         self.api_secret = api_secret
+        self.BASE_URL = "https://api.binance.com"
+        self.session = requests.Session()
+        if proxy:
+            self.session.proxies.update({"http": proxy, "https": proxy})
         
     def set_credentials(self, api_key: str, api_secret: str):
         self.api_key = api_key
@@ -18,7 +23,7 @@ class BinanceClient:
         """Get offset between local time and Binance server time in ms to avoid timestamp errors."""
         try:
             url = f"{self.BASE_URL}/api/v3/time"
-            response = requests.get(url, timeout=5)
+            response = self.session.get(url, timeout=5)
             response.raise_for_status()
             server_time = response.json().get("serverTime")
             local_time = int(time.time() * 1000)
@@ -42,7 +47,7 @@ class BinanceClient:
         """Fetch all symbol prices in USDT/BTC etc. to use for balance conversion."""
         try:
             url = f"{self.BASE_URL}/api/v3/ticker/price"
-            response = requests.get(url, timeout=10)
+            response = self.session.get(url, timeout=10)
             response.raise_for_status()
             data = response.json()
             return {item["symbol"]: float(item["price"]) for item in data}
@@ -62,7 +67,7 @@ class BinanceClient:
         url = f"{self.BASE_URL}/api/v3/account?{query_string}&signature={signature}"
         headers = self._get_signed_headers()
         
-        response = requests.get(url, headers=headers, timeout=10)
+        response = self.session.get(url, headers=headers, timeout=10)
         
         if response.status_code == 401:
             raise PermissionError("Invalid API Key or Secret")
@@ -102,7 +107,7 @@ class BinanceClient:
         
         payload = f"{query_string}&signature={signature}"
         
-        response = requests.post(url, headers=headers, data=payload, timeout=10)
+        response = self.session.post(url, headers=headers, data=payload, timeout=10)
         
         if response.status_code == 401:
             raise PermissionError("Invalid API Key or Secret")
@@ -143,7 +148,7 @@ class BinanceClient:
         url = f"{self.BASE_URL}/sapi/v1/asset/wallet/balance?{query_string}&signature={signature}"
         headers = self._get_signed_headers()
         
-        response = requests.get(url, headers=headers, timeout=10)
+        response = self.session.get(url, headers=headers, timeout=10)
         
         if response.status_code == 401:
             raise PermissionError("Invalid API Key or Secret")
@@ -168,7 +173,7 @@ class BinanceClient:
         # 1. Flexible Earn positions
         try:
             url_flex = f"{self.BASE_URL}/sapi/v1/simple-earn/flexible/position?{query_string}&signature={signature}"
-            response = requests.get(url_flex, headers=headers, timeout=10)
+            response = self.session.get(url_flex, headers=headers, timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 for row in data.get("rows", []):
@@ -188,7 +193,7 @@ class BinanceClient:
         # 2. Locked Earn positions
         try:
             url_locked = f"{self.BASE_URL}/sapi/v1/simple-earn/locked/position?{query_string}&signature={signature}"
-            response = requests.get(url_locked, headers=headers, timeout=10)
+            response = self.session.get(url_locked, headers=headers, timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 for row in data.get("rows", []):
@@ -371,7 +376,7 @@ class BinanceClient:
         
         # Try to query the official global exchange rates API to get exact bank rates
         try:
-            res = requests.get("https://open.er-api.com/v6/latest/USD", timeout=3)
+            res = self.session.get("https://open.er-api.com/v6/latest/USD", timeout=3)
             if res.status_code == 200:
                 ext_rates = res.json().get("rates", {})
                 if "UAH" in ext_rates:
@@ -394,4 +399,201 @@ class BinanceClient:
             "earn_error": earn_error,
             "fiat_rates": fiat_rates
         }
+
+    def get_open_orders(self, symbol: str = None) -> list:
+        """Fetch open orders for a specific symbol or all symbols."""
+        if not self.api_key or not self.api_secret:
+            raise ValueError("API Key and Secret must be provided")
+            
+        timestamp = int(time.time() * 1000) + self._get_server_time_offset()
+        query_string = f"timestamp={timestamp}&recvWindow=60000"
+        if symbol:
+            query_string = f"symbol={symbol.upper()}&{query_string}"
+            
+        signature = self._sign_query(query_string)
+        url = f"{self.BASE_URL}/api/v3/openOrders?{query_string}&signature={signature}"
+        headers = self._get_signed_headers()
+        
+        response = self.session.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 401:
+            raise PermissionError("Invalid API Key or Secret")
+        elif response.status_code == 400:
+            err_data = response.json()
+            raise Exception(f"Binance API Error: {err_data.get('msg', 'Bad Request')}")
+        response.raise_for_status()
+        
+        return response.json()
+
+    def get_symbol_price(self, symbol: str, market_type: str = "SPOT") -> float:
+        url = f"{self.BASE_URL}/api/v3/ticker/price?symbol={symbol.upper()}"
+        if market_type == "FUTURES":
+            url = f"{self.FAPI_URL}/fapi/v1/ticker/price?symbol={symbol.upper()}"
+        res = self.session.get(url, timeout=5)
+        res.raise_for_status()
+        return float(res.json()["price"])
+
+    def get_usdt_balance(self, market_type: str = "SPOT") -> float:
+        if market_type == "FUTURES":
+            timestamp = int(time.time() * 1000) + self._get_server_time_offset()
+            query_string = f"timestamp={timestamp}&recvWindow=60000"
+            signature = self._sign_query(query_string)
+            url = f"{self.FAPI_URL}/fapi/v2/balance?{query_string}&signature={signature}"
+            headers = self._get_signed_headers()
+            res = self.session.get(url, headers=headers, timeout=10)
+            res.raise_for_status()
+            for b in res.json():
+                if b["asset"] == "USDT":
+                    return float(b["availableBalance"])
+            return 0.0
+        else:
+            balances = self.get_spot_balances(self._get_server_time_offset())
+            for b in balances:
+                if b["asset"] == "USDT":
+                    return b["free"]
+            return 0.0
+
+    def set_leverage(self, symbol: str, leverage: int) -> dict:
+        timestamp = int(time.time() * 1000) + self._get_server_time_offset()
+        query_string = f"symbol={symbol.upper()}&leverage={leverage}&timestamp={timestamp}&recvWindow=60000"
+        signature = self._sign_query(query_string)
+        url = f"{self.FAPI_URL}/fapi/v1/leverage"
+        headers = self._get_signed_headers()
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+        payload = f"{query_string}&signature={signature}"
+        res = self.session.post(url, headers=headers, data=payload, timeout=10)
+        res.raise_for_status()
+        return res.json()
+
+    def create_order(self, symbol: str, side: str, order_type: str, market_type: str = "SPOT", quantity: float = None, usdt_amount: float = None, wallet_percentage: float = None, leverage: int = None, price: float = None, stopPrice: float = None, trailingDelta: int = None) -> dict:
+        """Place a new real order on SPOT or FUTURES, with smart quantity calculation."""
+        if not self.api_key or not self.api_secret:
+            raise ValueError("API Key and Secret must be provided")
+            
+        market_type = market_type.upper()
+        
+        # 1. Set leverage if FUTURES
+        if market_type == "FUTURES" and leverage:
+            self.set_leverage(symbol, leverage)
+            
+        # 2. Smart quantity calculation
+        final_quantity = quantity
+        if not final_quantity:
+            if not usdt_amount and not wallet_percentage:
+                raise ValueError("Must provide quantity, usdt_amount, or wallet_percentage")
+                
+            current_price = self.get_symbol_price(symbol, market_type)
+            
+            if wallet_percentage:
+                usdt_balance = self.get_usdt_balance(market_type)
+                usdt_to_spend = usdt_balance * (wallet_percentage / 100.0)
+            else:
+                usdt_to_spend = usdt_amount
+                
+            if market_type == "FUTURES" and leverage:
+                # In futures, with leverage, your buying power is multiplied
+                usdt_to_spend = usdt_to_spend * leverage
+                
+            final_quantity = usdt_to_spend / current_price
+            # Format to a reasonable precision (Binance usually requires specific step size, rounding to 4 decimals as a fallback)
+            # In a full prod app you would query /exchangeInfo for the exact lot size filter.
+            final_quantity = round(final_quantity, 4)
+
+        if final_quantity <= 0:
+            raise ValueError("Calculated quantity is 0 or negative.")
+            
+        timestamp = int(time.time() * 1000) + self._get_server_time_offset()
+        params = [
+            f"symbol={symbol.upper()}",
+            f"side={side.upper()}",
+            f"type={order_type.upper()}",
+            f"quantity={final_quantity}",
+            f"timestamp={timestamp}",
+            "recvWindow=60000"
+        ]
+        
+        if order_type.upper() in ["LIMIT", "STOP_LOSS_LIMIT", "TAKE_PROFIT_LIMIT"]:
+            if not price:
+                raise ValueError(f"Price must be provided for {order_type} orders")
+            params.append(f"price={price}")
+            params.append("timeInForce=GTC")
+            
+        if order_type.upper() in ["STOP_LOSS", "STOP_LOSS_LIMIT", "TAKE_PROFIT", "TAKE_PROFIT_LIMIT"]:
+            if not stopPrice and not trailingDelta:
+                raise ValueError(f"Either stopPrice or trailingDelta must be provided for {order_type} orders")
+                
+        if stopPrice:
+            params.append(f"stopPrice={stopPrice}")
+            
+        if trailingDelta:
+            params.append(f"trailingDelta={trailingDelta}")
+            
+        query_string = "&".join(params)
+        signature = self._sign_query(query_string)
+        
+        base_url = self.FAPI_URL if market_type == "FUTURES" else self.BASE_URL
+        endpoint = "/fapi/v1/order" if market_type == "FUTURES" else "/api/v3/order"
+        url = f"{base_url}{endpoint}"
+        
+        headers = self._get_signed_headers()
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+        
+        payload = f"{query_string}&signature={signature}"
+        
+        response = self.session.post(url, headers=headers, data=payload, timeout=10)
+        
+        if response.status_code == 401:
+            raise PermissionError("Invalid API Key or Secret")
+        elif response.status_code == 400:
+            err_data = response.json()
+            raise Exception(f"Binance API Error: {err_data.get('msg', 'Bad Request')}")
+        response.raise_for_status()
+        
+        return response.json()
+
+    def get_klines(self, symbol: str, interval: str, limit: int = 1000, start_time: int = None, end_time: int = None) -> list:
+        """Fetch historical klines (candlesticks).
+        interval options: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M
+        """
+        params = [
+            f"symbol={symbol.upper()}",
+            f"interval={interval}",
+            f"limit={limit}"
+        ]
+        
+        if start_time:
+            params.append(f"startTime={start_time}")
+        if end_time:
+            params.append(f"endTime={end_time}")
+            
+        query_string = "&".join(params)
+        url = f"{self.BASE_URL}/api/v3/klines?{query_string}"
+        
+        # No signature needed for public data, but we can pass standard headers
+        response = self.session.get(url, timeout=10)
+        
+        if response.status_code == 400:
+            err_data = response.json()
+            raise Exception(f"Binance API Error: {err_data.get('msg', 'Bad Request')}")
+        response.raise_for_status()
+        
+        # Format the klines into a list of dicts for easier reading by AI
+        raw_klines = response.json()
+        formatted_klines = []
+        for k in raw_klines:
+            formatted_klines.append({
+                "open_time": k[0],
+                "open": k[1],
+                "high": k[2],
+                "low": k[3],
+                "close": k[4],
+                "volume": k[5],
+                "close_time": k[6],
+                "quote_asset_volume": k[7],
+                "number_of_trades": k[8],
+                "taker_buy_base_asset_volume": k[9],
+                "taker_buy_quote_asset_volume": k[10]
+            })
+            
+        return formatted_klines
 
