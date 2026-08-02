@@ -101,7 +101,8 @@ if __name__ == "__main__":
                 return response
 
         # Получаем ASGI приложение из FastMCP
-        app = mcp.http_app(transport="sse")
+        # Используем transport="http" и путь "/gemini", чтобы Gemini мог отправлять POST запросы
+        app = mcp.http_app(transport="http", path="/gemini")
         
         app.add_middleware(LoggingMiddleware)
         
