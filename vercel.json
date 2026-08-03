@@ -10,7 +10,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "mcp_server.py"
+      "dest": "app.py"
     }
   ]
 }
