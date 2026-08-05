@@ -444,8 +444,7 @@ if __name__ == "__main__":
 
     class AuthMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
-            # Убрали "/", чтобы корень (включая SSE-стрим) требовал авторизации
-            public_paths = ["/authorize", "/login", "/register", "/token", "/dashboard", "/save_keys", "/logout"]
+            public_paths = ["/authorize", "/login", "/register", "/token", "/", "/dashboard", "/save_keys", "/logout"]
             if request.url.path in public_paths:
                 return await call_next(request)
             
