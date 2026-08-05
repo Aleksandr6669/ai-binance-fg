@@ -183,12 +183,8 @@ def get_current_ip(proxy: Optional[str] = None) -> dict:
     import requests
     session = requests.Session()
     try:
-        user_id = current_user_id.get()
-        db_proxy = None
-        if user_id:
-            _, _, db_proxy = database.get_user_settings(user_id)
-        
-        final_proxy = proxy if proxy else db_proxy
+        env_proxy = os.environ.get("BINANCE_PROXY")
+        final_proxy = proxy if proxy else env_proxy
         
         if final_proxy:
             session.proxies.update({"http": final_proxy, "https": final_proxy})
@@ -205,13 +201,10 @@ if __name__ == "__main__":
     import uvicorn
     from starlette.middleware.cors import CORSMiddleware
     from starlette.middleware.base import BaseHTTPMiddleware
-    from starlette.middleware.sessions import SessionMiddleware
     from starlette.responses import JSONResponse, RedirectResponse, HTMLResponse
     from starlette.applications import Starlette
     from starlette.routing import Route, Mount
-    from starlette.staticfiles import StaticFiles
     from urllib.parse import parse_qs
-    import database
 
     OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "my-client-id")
     OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "my-client-secret")
