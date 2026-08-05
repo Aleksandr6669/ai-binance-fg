@@ -242,7 +242,7 @@ if __name__ == "__main__":
 
     class AuthMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
-            public_paths = ["/", "/authorize", "/token"]
+            public_paths = ["/", "/sse", "/authorize", "/token"]
             if request.url.path in public_paths or request.url.path.startswith("/static/"):
                 return await call_next(request)
             
