@@ -9,6 +9,16 @@ import contextvars
 current_client_id = contextvars.ContextVar("current_client_id")
 global_session_map = {}
 
+def get_client_id_from_ctx(ctx):
+    print(f"[AUTH DEBUG] get_client_id_from_ctx called. ctx={ctx}", flush=True)
+    if ctx and hasattr(ctx, 'session_id') and ctx.session_id:
+        sid = str(ctx.session_id).replace('-', '')
+        cid = global_session_map.get(sid)
+        print(f"[AUTH DEBUG] session_id={ctx.session_id}, sid={sid}, client_id={cid}, map_keys={list(global_session_map.keys())}", flush=True)
+        return cid
+    print("[AUTH DEBUG] ctx has no session_id!", flush=True)
+    return None
+
 import mcp.types
 
 mcp = FastMCP(
@@ -30,8 +40,7 @@ def get_user_client(ctx: Context = None, api_key: Optional[str] = None, api_secr
         
     # Иначе берем ключи из базы данных
     client_id = None
-    if ctx and hasattr(ctx, "session_id"):
-        client_id = global_session_map.get(ctx.session_id)
+    client_id = get_client_id_from_ctx(ctx)
     if not client_id:
         try:
             client_id = current_client_id.get()
@@ -64,7 +73,7 @@ def save_binance_credentials(ctx: Context, api_key: str, api_secret: str, proxy:
     Gemini should use this tool when the user provides their Binance keys in the chat.
     The keys will be securely stored and used for all future operations.
     """
-    client_id = global_session_map.get(ctx.session_id) if hasattr(ctx, "session_id") else None
+    client_id = get_client_id_from_ctx(ctx)
     if not client_id:
         try:
             client_id = current_client_id.get()
@@ -78,7 +87,7 @@ def save_binance_credentials(ctx: Context, api_key: str, api_secret: str, proxy:
 @mcp.tool()
 def delete_binance_credentials(ctx: Context) -> str:
     """Delete the saved Binance API credentials from the application database."""
-    client_id = global_session_map.get(ctx.session_id) if hasattr(ctx, "session_id") else None
+    client_id = get_client_id_from_ctx(ctx)
     if not client_id:
         try:
             client_id = current_client_id.get()
@@ -92,7 +101,7 @@ def delete_binance_credentials(ctx: Context) -> str:
 @mcp.tool()
 def check_binance_credentials_status(ctx: Context) -> str:
     """Check if Binance API credentials are currently saved in the application database."""
-    client_id = global_session_map.get(ctx.session_id) if hasattr(ctx, "session_id") else None
+    client_id = get_client_id_from_ctx(ctx)
     if not client_id:
         try:
             client_id = current_client_id.get()
@@ -359,6 +368,7 @@ if __name__ == "__main__":
                 return
 
             query_string = scope.get("query_string", b"").decode("utf-8")
+            print(f"ASGI Request to {scope.get('path', '')} with query_string: {query_string}", flush=True)
             if "session_id=" in query_string:
                 import urllib.parse
                 parsed_query = urllib.parse.parse_qs(query_string)
