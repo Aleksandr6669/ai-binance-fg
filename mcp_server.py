@@ -2,10 +2,11 @@ from fastmcp import FastMCP
 from binance_client import BinanceClient
 from typing import Optional
 import os
+import database
 
-OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "my-client-id")
-OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "my-client-secret")
-STATIC_ACCESS_TOKEN = "gemini-mcp-access-token-123"
+import contextvars
+
+current_client_id = contextvars.ContextVar("current_client_id")
 
 import mcp.types
 
@@ -18,20 +19,53 @@ def get_user_client(api_key: Optional[str] = None, api_secret: Optional[str] = N
     if api_key and api_secret:
         return BinanceClient(api_key=api_key, api_secret=api_secret, proxy=proxy)
         
-    # Иначе берем ключи из переменных окружения (опционально, если они там заданы)
+    # Иначе берем ключи из базы данных
+    client_id = current_client_id.get()
+    db_api_key, db_api_secret, db_proxy = database.get_settings(client_id)
+    
+    # Если ключей нет в БД, пробуем переменные окружения
     env_api_key = os.environ.get("BINANCE_API_KEY")
     env_api_secret = os.environ.get("BINANCE_API_SECRET")
     env_proxy = os.environ.get("BINANCE_PROXY")
     
-    final_proxy = proxy if proxy else env_proxy
+    final_api_key = db_api_key if db_api_key else env_api_key
+    final_api_secret = db_api_secret if db_api_secret else env_api_secret
     
-    if not env_api_key or not env_api_secret:
-        raise Exception("Binance API keys not provided in tool arguments or environment variables.")
+    final_proxy = proxy if proxy else (db_proxy if db_proxy else env_proxy)
+    
+    if not final_api_key or not final_api_secret:
+        raise Exception("Binance API keys not provided in tool arguments, database, or environment variables. Please use 'save_binance_credentials' to save them.")
         
-    return BinanceClient(api_key=env_api_key, api_secret=env_api_secret, proxy=final_proxy)
+    return BinanceClient(api_key=final_api_key, api_secret=final_api_secret, proxy=final_proxy)
 
 def log_action(action: str, details: str = ""):
     print(f"[Operation Log] Action: {action} | Details: {details}")
+
+@mcp.tool()
+def save_binance_credentials(api_key: str, api_secret: str, proxy: Optional[str] = None) -> str:
+    """Save Binance API credentials to the application database.
+    Gemini should use this tool when the user provides their Binance keys in the chat.
+    The keys will be securely stored and used for all future operations.
+    """
+    database.save_settings(current_client_id.get(), api_key, api_secret, proxy)
+    log_action("Saved Credentials", "Binance API credentials were saved to the database.")
+    return "Successfully saved Binance API credentials to the database."
+
+@mcp.tool()
+def delete_binance_credentials() -> str:
+    """Delete the saved Binance API credentials from the application database."""
+    database.delete_settings(current_client_id.get())
+    log_action("Deleted Credentials", "Binance API credentials were deleted.")
+    return "Successfully deleted Binance API credentials."
+
+@mcp.tool()
+def check_binance_credentials_status() -> str:
+    """Check if Binance API credentials are currently saved in the application database."""
+    api_key, _, proxy = database.get_settings(current_client_id.get())
+    if api_key:
+        return f"Credentials ARE saved. Proxy is {'set' if proxy else 'NOT set'}."
+    else:
+        return "Credentials are NOT saved. Please use save_binance_credentials to set them."
 
 @mcp.tool()
 def get_binance_balance(api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
@@ -206,8 +240,7 @@ if __name__ == "__main__":
     from starlette.routing import Route, Mount
     from urllib.parse import parse_qs
 
-    OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "my-client-id")
-    OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "my-client-secret")
+    # OAUTH_CLIENT_ID and OAUTH_CLIENT_SECRET are no longer needed here as they are dynamic
 
     async def authorize(request):
         redirect_uri = request.query_params.get("redirect_uri", "")
@@ -230,12 +263,13 @@ if __name__ == "__main__":
         if not client_id or not client_secret:
              return JSONResponse({"error": "invalid_client", "details": "Client ID and Secret cannot be empty"}, status_code=401)
              
-        if client_id != OAUTH_CLIENT_ID or client_secret != OAUTH_CLIENT_SECRET:
+        # Authenticate or register client via DB
+        token_str = database.register_or_verify_client(client_id, client_secret)
+        if not token_str:
              return JSONResponse({"error": "invalid_client", "details": "Incorrect Client ID or Secret"}, status_code=401)
         
-        # Return a static token for Gemini to use. Stateless!
         return JSONResponse({
-            "access_token": STATIC_ACCESS_TOKEN,
+            "access_token": token_str,
             "token_type": "bearer",
             "expires_in": 31536000
         })
@@ -251,10 +285,15 @@ if __name__ == "__main__":
                 return JSONResponse({"error": "Unauthorized"}, status_code=401, headers={"WWW-Authenticate": "Bearer"})
                 
             token = auth_header.split(" ")[1]
-            if token != STATIC_ACCESS_TOKEN:
+            client_id = database.get_client_id_by_token(token)
+            if not client_id:
                 return JSONResponse({"error": "Invalid token"}, status_code=401, headers={"WWW-Authenticate": "Bearer"})
             
-            return await call_next(request)
+            token_ctx = current_client_id.set(client_id)
+            try:
+                return await call_next(request)
+            finally:
+                current_client_id.reset(token_ctx)
 
     class LoggingMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
