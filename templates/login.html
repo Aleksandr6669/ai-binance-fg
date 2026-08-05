@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login / Register - Binance AI</title>
+    <link rel="icon" href="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" type="image/png">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        {error_html}
+        <h2>Login / Register</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            To use the AI Binance Agent, you need to create an account to securely store your API keys and receive your Gemini Extension Key.
+        </p>
+        
+        <form action="/login" method="post" style="margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 20px;">
+            <h3>Login</h3>
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        
+        <form action="/register" method="post">
+            <h3>Register</h3>
+            <input type="text" name="username" placeholder="New Username" required>
+            <input type="password" name="password" placeholder="New Password" required>
+            <button type="submit" style="background-color: #2b3139; color: white;">Register</button>
+        </form>
+    </div>
+</body>
+</html>

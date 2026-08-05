@@ -151,6 +151,20 @@ def exchange_code_for_token(code: str) -> Optional[str]:
         conn.commit()
     return None
 
+def get_or_create_api_key(user_id: int) -> str:
+    """Возвращает существующий токен пользователя или создает новый (API-ключ)."""
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT token FROM oauth_tokens WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        if row:
+            return row[0]
+            
+        token = secrets.token_urlsafe(64)
+        cursor.execute("INSERT INTO oauth_tokens (token, user_id) VALUES (?, ?)", (token, user_id))
+        conn.commit()
+        return token
+
 def get_user_by_token(token: str) -> Optional[int]:
     """Проверка Bearer токена. Возвращает user_id."""
     with sqlite3.connect(DB_PATH) as conn:
