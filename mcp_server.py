@@ -331,16 +331,17 @@ if __name__ == "__main__":
                 return await self.app(scope, receive, send)
 
             path = scope.get("path", "")
-            public_paths = ["/", "/favicon.ico", "/authorize", "/token"]
-            if path in public_paths or path.startswith("/static/") or path.startswith("/.well-known/"):
-                return await self.app(scope, receive, send)
-            
             headers = dict(scope.get("headers", []))
             auth_header = headers.get(b"authorization", b"").decode("utf-8")
             
             if not auth_header or not auth_header.startswith("Bearer "):
-                await self.send_401(send)
-                return
+                # Do not block /sse probes with 401. Let them pass to FastMCP (which returns 405/406 for probes).
+                public_paths = ["/", "/favicon.ico", "/authorize", "/token", "/sse"]
+                if path in public_paths or path.startswith("/static/") or path.startswith("/.well-known/"):
+                    return await self.app(scope, receive, send)
+                else:
+                    await self.send_401(send)
+                    return
 
             token = auth_header.split(" ")[1]
             client_id = database.get_client_id_by_token(token)
