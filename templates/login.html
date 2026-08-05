@@ -4,31 +4,34 @@
     <title>Login / Register - Binance AI</title>
     <link rel="icon" href="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" type="image/png">
     <link rel="stylesheet" href="/static/css/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
     <div class="container">
         {error_html}
-        <h2>Login / Register</h2>
-        <p style="color: #666; margin-bottom: 20px;">
-            To use the AI Binance Agent, you need to create an account to securely store your API keys and receive your Gemini Extension Key.
-        </p>
+        <div style="text-align: center; margin-bottom: 30px;">
+            <img src="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" alt="Logo" style="width: 48px; height: 48px; margin-bottom: 16px;">
+            <h2>Welcome to Binance AI</h2>
+            <p>Connect your account to securely store API keys and manage your Gemini Extension.</p>
+        </div>
         
-        <form action="/login" method="post" style="margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 20px;">
+        <form action="/login" method="post">
             <input type="hidden" name="redirect_uri" value="{redirect_uri}">
             <input type="hidden" name="state" value="{state}">
-            <h3>Login</h3>
             <input type="text" name="username" placeholder="Username" required>
             <input type="password" name="password" placeholder="Password" required>
             <button type="submit">Login</button>
         </form>
         
+        <div class="divider"></div>
+        
         <form action="/register" method="post">
             <input type="hidden" name="redirect_uri" value="{redirect_uri}">
             <input type="hidden" name="state" value="{state}">
-            <h3>Register</h3>
+            <h3 style="margin-top: 0; margin-bottom: 20px; text-align: center;">Create an Account</h3>
             <input type="text" name="username" placeholder="New Username" required>
             <input type="password" name="password" placeholder="New Password" required>
-            <button type="submit" style="background-color: #2b3139; color: white;">Register</button>
+            <button type="submit" class="secondary-btn">Register</button>
         </form>
     </div>
 </body>

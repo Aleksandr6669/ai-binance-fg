@@ -4,38 +4,52 @@
     <title>Dashboard - Binance AI</title>
     <link rel="icon" href="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" type="image/png">
     <link rel="stylesheet" href="/static/css/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-    <div class="container">
+    <div class="container dashboard-container">
         <a href="/logout" class="logout-link">← Logout</a>
         
-        <h2>Dashboard</h2>
-        
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 30px;">
+            <img src="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" alt="Logo" style="width: 40px; height: 40px;">
+            <h2 style="margin: 0;">Dashboard</h2>
+        </div>
 
-        <h3>Current Server / Proxy IP</h3>
-        <p style="font-family: monospace; background: #eee; padding: 10px; border-radius: 4px;">{current_ip}</p>
-        <p style="font-size: 12px; color: #666;">This is the IP address Binance will see. Add it to your API Key whitelist.</p>
+        <h3>Network Settings</h3>
+        <label>Current Server / Proxy IP</label>
+        <div class="mono-block">{current_ip}</div>
+        <p style="margin-top: 8px;">This is the IP address Binance will see. Ensure you whitelist it in your Binance API settings.</p>
 
-        <h3>Binance API Settings</h3>
-        <p style="font-size: 14px; color: #666;">Enter your Binance API keys and optional proxy here. The AI will use them securely.</p>
-        <form action="/save_keys" method="post" style="margin-bottom: 40px;">
+        <div class="divider"></div>
+
+        <h3>Binance API Keys</h3>
+        <p>Enter your Binance API keys. We securely encrypt and store them so the AI can operate on your behalf.</p>
+        <form action="/save_keys" method="post" style="margin-top: 24px;">
             <label>API Key</label>
-            <input type="text" name="api_key" value="{api_key_val}">
+            <input type="text" name="api_key" value="{api_key_val}" placeholder="Enter your Binance API Key">
             
             <label>API Secret</label>
-            <input type="password" name="api_secret" value="{api_secret_val}">
+            <input type="password" name="api_secret" value="{api_secret_val}" placeholder="Enter your Binance API Secret">
             
-            <label>Proxy URL (Optional, e.g. http://user:pass@ip:port)</label>
-            <input type="text" name="proxy" value="{proxy_val}">
+            <label>Proxy URL (Optional)</label>
+            <input type="text" name="proxy" value="{proxy_val}" placeholder="e.g. http://user:pass@ip:port">
             
             <button type="submit">Save Settings</button>
         </form>
         
+        <div class="divider"></div>
+
         <h3>Recent AI Operations</h3>
-        <table>
-            <tr><th>Time</th><th>Action</th><th>Details</th></tr>
-            {history_rows}
-        </table>
+        <div style="overflow-x: auto;">
+            <table>
+                <tr>
+                    <th>Time</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                </tr>
+                {history_rows}
+            </table>
+        </div>
     </div>
 </body>
 </html>
