@@ -223,15 +223,6 @@ if __name__ == "__main__":
     OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "my-client-id")
     OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "my-client-secret")
 
-    def render_template(filename: str, context: dict = None):
-        if context is None:
-            context = {}
-        with open(os.path.join("templates", filename), "r", encoding="utf-8") as f:
-            content = f.read()
-        for k, v in context.items():
-            content = content.replace(f"{{{k}}}", str(v))
-        return HTMLResponse(content)
-
     async def authorize(request):
         redirect_uri = request.query_params.get("redirect_uri", "")
         state = request.query_params.get("state", "")
@@ -243,114 +234,24 @@ if __name__ == "__main__":
             return RedirectResponse(url, status_code=303)
         return JSONResponse({"status": "ok"})
 
-    async def register(request):
-        body_bytes = await request.body()
-        form = parse_qs(body_bytes.decode('utf-8'))
-        username = form.get("username", [""])[0]
-        password = form.get("password", [""])[0]
-        redirect_uri = form.get("redirect_uri", [""])[0]
-        state = form.get("state", [""])[0]
-        
-        if database.register_user(username, password):
-            return render_template("login.html", {"error_html": "<div class='error' style='color: #00C853; background-color: rgba(0, 200, 83, 0.1); border-color: rgba(0, 200, 83, 0.2);'>Registration successful! Please login.</div>", "redirect_uri": redirect_uri, "state": state})
-        else:
-            return render_template("login.html", {"error_html": "<div class='error'>Username already taken.</div>", "redirect_uri": redirect_uri, "state": state})
-
-    async def login(request):
-        body_bytes = await request.body()
-        form = parse_qs(body_bytes.decode('utf-8'))
-        username = form.get("username", [""])[0]
-        password = form.get("password", [""])[0]
-        redirect_uri = form.get("redirect_uri", [""])[0]
-        state = form.get("state", [""])[0]
-        
-        user_id = database.verify_user(username, password)
-        if user_id:
-            request.session["user_id"] = user_id
-            if redirect_uri:
-                auth_code = database.create_auth_code(user_id)
-                url = f"{redirect_uri}?code={auth_code}&state={state}"
-                return RedirectResponse(url, status_code=303)
-            return RedirectResponse("/dashboard", status_code=303)
-        else:
-            return render_template("login.html", {"error_html": "<div class='error'>Invalid login credentials</div>", "redirect_uri": redirect_uri, "state": state})
-
-    async def logout(request):
-        request.session.clear()
-        return RedirectResponse("/", status_code=303)
-
-    async def dashboard(request):
-        user_id = request.session.get("user_id")
-        if not user_id:
-            return RedirectResponse("/", status_code=303)
-            
-        api_key, api_secret, proxy = database.get_user_settings(user_id)
-        api_key_val = api_key if api_key else ""
-        api_secret_val = api_secret if api_secret else ""
-        proxy_val = proxy if proxy else ""
-        
-        import requests
-        session = requests.Session()
-        if proxy:
-            session.proxies.update({"http": proxy, "https": proxy})
-        try:
-            res = session.get("https://api.ipify.org?format=json", timeout=3)
-            res.raise_for_status()
-            current_ip = res.json().get("ip")
-        except Exception as e:
-            current_ip = f"Error fetching IP: {str(e)}"
-        
-        history = database.get_history(user_id)
-        history_rows = ""
-        import datetime
-        for h in history:
-            dt = datetime.datetime.fromtimestamp(h['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
-            history_rows += f"<tr><td>{dt}</td><td>{h['action']}</td><td>{h['details']}</td></tr>"
-        if not history_rows:
-            history_rows = "<tr><td colspan='3'>No operations yet.</td></tr>"
-
-        context = {
-            "current_ip": current_ip,
-            "api_key_val": api_key_val,
-            "api_secret_val": api_secret_val,
-            "proxy_val": proxy_val,
-            "history_rows": history_rows
-        }
-        return render_template("dashboard.html", context)
-
-    async def save_keys(request):
-        user_id = request.session.get("user_id")
-        if not user_id:
-            return RedirectResponse("/", status_code=303)
-            
-        body_bytes = await request.body()
-        form = parse_qs(body_bytes.decode('utf-8'))
-        api_key = form.get("api_key", [""])[0]
-        api_secret = form.get("api_secret", [""])[0]
-        proxy = form.get("proxy", [""])[0]
-        
-        database.update_user_settings(user_id, api_key, api_secret, proxy)
-        return RedirectResponse("/dashboard", status_code=303)
-
-
     async def token(request):
         body_bytes = await request.body()
         form = parse_qs(body_bytes.decode('utf-8'))
         
-        # We expect the Binance API Key and Secret to be passed here as client_id and client_secret
         client_id = form.get("client_id", [None])[0]
         client_secret = form.get("client_secret", [None])[0]
         
         if not client_id or not client_secret:
-             return JSONResponse({"error": "invalid_client"}, status_code=401)
+             return JSONResponse({"error": "invalid_client", "details": "Client ID and Secret cannot be empty"}, status_code=401)
+             
+        if client_id != OAUTH_CLIENT_ID or client_secret != OAUTH_CLIENT_SECRET:
+             return JSONResponse({"error": "invalid_client", "details": "Incorrect Client ID or Secret"}, status_code=401)
         
-        # Register a dummy user if it doesn't exist. We'll use the API Key as the username.
-        database.register_user(client_id, "dummy_password_for_api")
-        user_id = database.verify_user(client_id, "dummy_password_for_api")
+        # We just need a single admin user to bind the token to
+        database.register_user("admin", "admin_password")
+        user_id = database.verify_user("admin", "admin_password")
         
         if user_id:
-            # Save the actual keys to this user
-            database.update_user_settings(user_id, client_id, client_secret, "")
             # Generate a token for Gemini to use
             access_token = database.get_or_create_api_key(user_id)
             
@@ -394,20 +295,10 @@ if __name__ == "__main__":
     app = Starlette(routes=[
         Route("/", authorize, methods=["GET"]),
         Route("/authorize", authorize, methods=["GET"]),
-        Route("/login", login, methods=["POST"]),
-        Route("/register", register, methods=["POST"]),
-        Route("/logout", logout, methods=["GET"]),
-        Route("/dashboard", dashboard, methods=["GET"]),
-        Route("/save_keys", save_keys, methods=["POST"]),
         Route("/token", token, methods=["POST"]),
-        Mount("/static", app=StaticFiles(directory="static"), name="static"),
         Mount("/", app=mcp_app)
     ], lifespan=mcp_app.lifespan)
 
-    
-    # Секретный ключ для подписи сессий (куки)
-    SESSION_SECRET = os.environ.get("SESSION_SECRET", "super-secret-session-key-12345")
-    app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, max_age=86400)
     app.add_middleware(AuthMiddleware)
     app.add_middleware(LoggingMiddleware)
     cors_app = CORSMiddleware(
