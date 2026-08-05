@@ -3,11 +3,14 @@ from binance_client import BinanceClient
 from typing import Optional
 import contextvars
 import database
+import mcp.types
 
 current_user_id = contextvars.ContextVar("current_user_id", default=None)
 
 # Create an MCP server
-mcp = FastMCP("Binance Trading Server")
+mcp = FastMCP("Binance Trading Server", icons=[
+    mcp.types.Icon(src="https://cryptologos.cc/logos/binance-coin-bnb-logo.png", mimeType="image/png")
+])
 
 def get_user_client(api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None):
     # Если нейросеть передает ключи напрямую
@@ -441,7 +444,8 @@ if __name__ == "__main__":
 
     class AuthMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
-            public_paths = ["/authorize", "/login", "/register", "/token", "/", "/dashboard", "/save_keys", "/logout"]
+            # Убрали "/", чтобы корень (включая SSE-стрим) требовал авторизации
+            public_paths = ["/authorize", "/login", "/register", "/token", "/dashboard", "/save_keys", "/logout"]
             if request.url.path in public_paths:
                 return await call_next(request)
             
