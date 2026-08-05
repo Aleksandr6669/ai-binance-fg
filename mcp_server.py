@@ -311,8 +311,20 @@ if __name__ == "__main__":
             path = scope.get("path", "")
             headers = dict(scope.get("headers", []))
             auth_header = headers.get(b"authorization", b"").decode("utf-8")
+            x_client_id = headers.get(b"x-client-id", b"").decode("utf-8")
+            x_client_secret = headers.get(b"x-client-secret", b"").decode("utf-8")
             
-            if not auth_header or not auth_header.startswith("Bearer "):
+            client_id = None
+            if auth_header and auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
+                client_id = database.get_client_id_by_token(token)
+            elif x_client_id and x_client_secret:
+                # Handle direct config file authentication
+                token = database.register_or_verify_client(x_client_id, x_client_secret)
+                if token:
+                    client_id = x_client_id
+            
+            if not client_id:
                 # Do not block /sse probes with 401. Let them pass to FastMCP (which returns 405/406 for probes).
                 public_paths = ["/", "/favicon.ico", "/authorize", "/token", "/sse"]
                 if path in public_paths or path.startswith("/static/") or path.startswith("/.well-known/"):
@@ -320,12 +332,6 @@ if __name__ == "__main__":
                 else:
                     await self.send_401(send)
                     return
-
-            token = auth_header.split(" ")[1]
-            client_id = database.get_client_id_by_token(token)
-            if not client_id:
-                await self.send_401(send)
-                return
 
             import json
             
