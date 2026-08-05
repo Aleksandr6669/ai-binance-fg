@@ -267,8 +267,6 @@ if __name__ == "__main__":
     from starlette.routing import Route, Mount
     from urllib.parse import parse_qs
 
-    # OAUTH_CLIENT_ID and OAUTH_CLIENT_SECRET are no longer needed here as they are dynamic
-
     async def authorize(request):
         redirect_uri = request.query_params.get("redirect_uri", "")
         state = request.query_params.get("state", "")
