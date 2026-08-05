@@ -359,11 +359,11 @@ if __name__ == "__main__":
                 return
 
             query_string = scope.get("query_string", b"").decode("utf-8")
-            if "sessionId=" in query_string:
+            if "session_id=" in query_string:
                 import urllib.parse
                 parsed_query = urllib.parse.parse_qs(query_string)
-                if "sessionId" in parsed_query:
-                    session_id = parsed_query["sessionId"][0]
+                if "session_id" in parsed_query:
+                    session_id = parsed_query["session_id"][0]
                     global_session_map[session_id] = client_id
 
             token_ctx = current_client_id.set(client_id)
