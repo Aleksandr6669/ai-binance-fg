@@ -3,6 +3,9 @@ from binance_client import BinanceClient
 from typing import Optional
 import contextvars
 import database
+
+    OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "my-client-id")
+    OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "my-client-secret")
 import mcp.types
 
 current_user_id = contextvars.ContextVar("current_user_id", default=None)
@@ -217,6 +220,9 @@ if __name__ == "__main__":
     from urllib.parse import parse_qs
     import database
 
+    OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "my-client-id")
+    OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "my-client-secret")
+
     def render_template(filename: str, context: dict = None):
         if context is None:
             context = {}
@@ -227,9 +233,17 @@ if __name__ == "__main__":
         return HTMLResponse(content)
 
     async def authorize(request):
+        client_id = request.query_params.get("client_id", "")
+        redirect_uri = request.query_params.get("redirect_uri", "")
+        state = request.query_params.get("state", "")
+        
         if request.session.get("user_id"):
+            if redirect_uri:
+                auth_code = database.create_auth_code(request.session["user_id"])
+                url = f"{redirect_uri}?code={auth_code}&state={state}"
+                return RedirectResponse(url, status_code=303)
             return RedirectResponse("/dashboard", status_code=303)
-        return render_template("login.html", {"error_html": ""})
+        return render_template("login.html", {"error_html": "", "redirect_uri": redirect_uri, "state": state})
 
     async def register(request):
         body_bytes = await request.body()
@@ -247,13 +261,19 @@ if __name__ == "__main__":
         form = parse_qs(body_bytes.decode('utf-8'))
         username = form.get("username", [""])[0]
         password = form.get("password", [""])[0]
+        redirect_uri = form.get("redirect_uri", [""])[0]
+        state = form.get("state", [""])[0]
         
         user_id = database.verify_user(username, password)
         if user_id:
             request.session["user_id"] = user_id
+            if redirect_uri:
+                auth_code = database.create_auth_code(user_id)
+                url = f"{redirect_uri}?code={auth_code}&state={state}"
+                return RedirectResponse(url, status_code=303)
             return RedirectResponse("/dashboard", status_code=303)
         else:
-            return render_template("login.html", {"error_html": "<div class='error'>Invalid login credentials</div>"})
+            return render_template("login.html", {"error_html": "<div class='error'>Invalid login credentials</div>", "redirect_uri": redirect_uri, "state": state})
 
     async def logout(request):
         request.session.clear()
@@ -315,9 +335,31 @@ if __name__ == "__main__":
         database.update_user_settings(user_id, api_key, api_secret, proxy)
         return RedirectResponse("/dashboard", status_code=303)
 
+
+    async def token(request):
+        body_bytes = await request.body()
+        form = parse_qs(body_bytes.decode('utf-8'))
+        
+        client_id = form.get("client_id", [None])[0]
+        client_secret = form.get("client_secret", [None])[0]
+        code = form.get("code", [None])[0]
+        
+        if client_id != OAUTH_CLIENT_ID or client_secret != OAUTH_CLIENT_SECRET:
+            return JSONResponse({"error": "invalid_client"}, status_code=401)
+            
+        access_token = database.exchange_code_for_token(code)
+        if not access_token:
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+            
+        return JSONResponse({
+            "access_token": access_token,
+            "token_type": "bearer",
+            "expires_in": 31536000
+        })
+
     class AuthMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
-            public_paths = ["/", "/authorize", "/login", "/register", "/dashboard", "/save_keys", "/logout"]
+            public_paths = ["/", "/sse", "/authorize", "/login", "/register", "/token", "/dashboard", "/save_keys", "/logout"]
             if request.url.path in public_paths or request.url.path.startswith("/static/"):
                 return await call_next(request)
             
@@ -352,6 +394,7 @@ if __name__ == "__main__":
         Route("/logout", logout, methods=["GET"]),
         Route("/dashboard", dashboard, methods=["GET"]),
         Route("/save_keys", save_keys, methods=["POST"]),
+        Route("/token", token, methods=["POST"]),
         Mount("/static", app=StaticFiles(directory="static"), name="static"),
         Mount("/", app=mcp_app)
     ], lifespan=mcp_app.lifespan)
