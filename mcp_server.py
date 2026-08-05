@@ -332,7 +332,7 @@ if __name__ == "__main__":
 
             path = scope.get("path", "")
             public_paths = ["/", "/favicon.ico", "/authorize", "/token"]
-            if path in public_paths or path.startswith("/static/"):
+            if path in public_paths or path.startswith("/static/") or path.startswith("/.well-known/"):
                 return await self.app(scope, receive, send)
             
             headers = dict(scope.get("headers", []))
