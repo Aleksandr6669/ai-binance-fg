@@ -271,23 +271,9 @@ if __name__ == "__main__":
             url = f"{redirect_uri}?code=dummy_auth_code&state={state}"
             return RedirectResponse(url, status_code=303)
             
-        html_content = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Binance Trading Server</title>
-            <meta name="description" content="AI Assistant for Binance">
-            <link rel="icon" href="https://cryptologos.cc/logos/bnb-bnb-logo.png" type="image/png">
-            <meta property="og:title" content="Binance Trading Server">
-            <meta property="og:description" content="AI Assistant for Binance">
-            <meta property="og:image" content="https://cryptologos.cc/logos/bnb-bnb-logo.png">
-        </head>
-        <body>
-            <h1>Binance Trading MCP Server</h1>
-            <p>This server provides tools to trade on Binance via AI.</p>
-        </body>
-        </html>
-        """
+        with open(os.path.join(os.path.dirname(__file__), "index.html"), "r") as f:
+            html_content = f.read()
+            
         return HTMLResponse(content=html_content)
 
     async def favicon(request):
