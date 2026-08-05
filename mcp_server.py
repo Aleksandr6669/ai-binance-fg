@@ -400,7 +400,7 @@ if __name__ == "__main__":
         </table>
         """
         # Fixing python formatting issue with curly braces by using string format properly
-        body = body.replace("{{current_ip}}", str(current_ip)).replace("{{api_key_val}}", str(api_key_val)).replace("{{api_secret_val}}", str(api_secret_val)).replace("{{proxy_val}}", str(proxy_val)).replace("{{history_rows}}", str(history_rows))
+        body = body.replace("{current_ip}", str(current_ip)).replace("{api_key_val}", str(api_key_val)).replace("{api_secret_val}", str(api_secret_val)).replace("{proxy_val}", str(proxy_val)).replace("{history_rows}", str(history_rows))
 
         return HTMLResponse(render_template("Dashboard", body))
 
