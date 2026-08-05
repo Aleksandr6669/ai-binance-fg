@@ -49,18 +49,12 @@ def get_user_client(ctx: Context = None, api_key: Optional[str] = None, api_secr
         
     db_api_key, db_api_secret, db_proxy = database.get_settings(client_id)
     
-    # Если ключей нет в БД, пробуем переменные окружения
-    env_api_key = os.environ.get("BINANCE_API_KEY")
-    env_api_secret = os.environ.get("BINANCE_API_SECRET")
-    env_proxy = os.environ.get("BINANCE_PROXY")
-    
-    final_api_key = db_api_key if db_api_key else env_api_key
-    final_api_secret = db_api_secret if db_api_secret else env_api_secret
-    
-    final_proxy = proxy if proxy else (db_proxy if db_proxy else env_proxy)
+    final_api_key = db_api_key
+    final_api_secret = db_api_secret
+    final_proxy = proxy if proxy else db_proxy
     
     if not final_api_key or not final_api_secret:
-        raise Exception("Binance API keys not provided in tool arguments, database, or environment variables. Please use 'save_binance_credentials' to save them.")
+        raise Exception("Binance API keys not found in database. Please use 'save_binance_credentials' to save them.")
         
     return BinanceClient(api_key=final_api_key, api_secret=final_api_secret, proxy=final_proxy)
 
