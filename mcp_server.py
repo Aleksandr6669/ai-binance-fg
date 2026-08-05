@@ -480,7 +480,7 @@ if __name__ == "__main__":
         Route("/save_keys", save_keys, methods=["POST"]),
         Route("/token", token, methods=["POST"]),
         Mount("/", app=mcp_app)
-    ])
+    ], lifespan=mcp_app.lifespan)
     
     # Секретный ключ для подписи сессий (куки)
     SESSION_SECRET = os.environ.get("SESSION_SECRET", "super-secret-session-key-12345")
