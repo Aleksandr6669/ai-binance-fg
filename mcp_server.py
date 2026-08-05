@@ -233,17 +233,15 @@ if __name__ == "__main__":
         return HTMLResponse(content)
 
     async def authorize(request):
-        client_id = request.query_params.get("client_id", "")
         redirect_uri = request.query_params.get("redirect_uri", "")
         state = request.query_params.get("state", "")
         
-        if request.session.get("user_id"):
-            if redirect_uri:
-                auth_code = database.create_auth_code(request.session["user_id"])
-                url = f"{redirect_uri}?code={auth_code}&state={state}"
-                return RedirectResponse(url, status_code=303)
-            return RedirectResponse("/dashboard", status_code=303)
-        return render_template("login.html", {"error_html": "", "redirect_uri": redirect_uri, "state": state})
+        if redirect_uri:
+            # We don't need a UI anymore. We just instantly redirect back with a dummy code.
+            # Gemini will then call /token with the client_id (Binance API Key) and client_secret.
+            url = f"{redirect_uri}?code=dummy_auth_code&state={state}"
+            return RedirectResponse(url, status_code=303)
+        return JSONResponse({"status": "ok"})
 
     async def register(request):
         body_bytes = await request.body()
@@ -339,22 +337,30 @@ if __name__ == "__main__":
         body_bytes = await request.body()
         form = parse_qs(body_bytes.decode('utf-8'))
         
+        # We expect the Binance API Key and Secret to be passed here as client_id and client_secret
         client_id = form.get("client_id", [None])[0]
         client_secret = form.get("client_secret", [None])[0]
-        code = form.get("code", [None])[0]
         
-        if client_id != OAUTH_CLIENT_ID or client_secret != OAUTH_CLIENT_SECRET:
-            return JSONResponse({"error": "invalid_client"}, status_code=401)
+        if not client_id or not client_secret:
+             return JSONResponse({"error": "invalid_client"}, status_code=401)
+        
+        # Register a dummy user if it doesn't exist. We'll use the API Key as the username.
+        database.register_user(client_id, "dummy_password_for_api")
+        user_id = database.verify_user(client_id, "dummy_password_for_api")
+        
+        if user_id:
+            # Save the actual keys to this user
+            database.update_user_settings(user_id, client_id, client_secret, "")
+            # Generate a token for Gemini to use
+            access_token = database.get_or_create_api_key(user_id)
             
-        access_token = database.exchange_code_for_token(code)
-        if not access_token:
-            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+            return JSONResponse({
+                "access_token": access_token,
+                "token_type": "bearer",
+                "expires_in": 31536000
+            })
             
-        return JSONResponse({
-            "access_token": access_token,
-            "token_type": "bearer",
-            "expires_in": 31536000
-        })
+        return JSONResponse({"error": "server_error"}, status_code=500)
 
     class AuthMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
