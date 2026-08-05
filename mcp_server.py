@@ -289,8 +289,6 @@ if __name__ == "__main__":
         api_secret_val = api_secret if api_secret else ""
         proxy_val = proxy if proxy else ""
         
-        gemini_api_key = database.get_or_create_api_key(user_id)
-        
         import requests
         session = requests.Session()
         if proxy:
@@ -316,8 +314,7 @@ if __name__ == "__main__":
             "api_key_val": api_key_val,
             "api_secret_val": api_secret_val,
             "proxy_val": proxy_val,
-            "history_rows": history_rows,
-            "gemini_api_key": gemini_api_key
+            "history_rows": history_rows
         }
         return render_template("dashboard.html", context)
 
@@ -365,12 +362,12 @@ if __name__ == "__main__":
             
             auth_header = request.headers.get("Authorization")
             if not auth_header or not auth_header.startswith("Bearer "):
-                return JSONResponse({"error": "Unauthorized. Please provide API Key as Bearer token."}, status_code=401)
+                return JSONResponse({"error": "Unauthorized"}, status_code=401, headers={"WWW-Authenticate": "Bearer"})
                 
             token = auth_header.split(" ")[1]
             user_id = database.get_user_by_token(token)
             if not user_id:
-                return JSONResponse({"error": "Invalid API Key"}, status_code=401)
+                return JSONResponse({"error": "Invalid token"}, status_code=401, headers={"WWW-Authenticate": "Bearer"})
             
             token_ctx = current_user_id.set(user_id)
             try:
