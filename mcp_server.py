@@ -1,15 +1,13 @@
 from fastmcp import FastMCP
 from binance_client import BinanceClient
 from typing import Optional
-import contextvars
-import database
 import os
 
 OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "my-client-id")
 OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "my-client-secret")
-import mcp.types
+STATIC_ACCESS_TOKEN = "gemini-mcp-access-token-123"
 
-current_user_id = contextvars.ContextVar("current_user_id", default=None)
+import mcp.types
 
 mcp = FastMCP("Binance Trading Server", icons=[
     mcp.types.Icon(src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgdmlld0JveD0iMCAwIDI1NiAyNTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI1NiIgaGVpZ2h0PSIyNTYiIHJ4PSI1MCIgZmlsbD0iI0ZDRDUzNSIvPjxwYXRoIGQ9Ik0xMjggNTAgTDE2OCA5MCBMMTI4IDEzMCBMODggOTAgWiIgZmlsbD0iIzBCMEUxMSIvPjxwYXRoIGQ9Ik0xMjggMjA2IEwxNjggMTY2IEwxMjggMTI2IEw4OCAxNjYgWiIgZmlsbD0iIzBCMEUxMSIvPjxwYXRoIGQ9Ik01MCAxMjggTDkwIDg4IEwxMzAgMTI4IEw5MCAxNjggWiIgZmlsbD0iIzBCMEUxMSIvPjxwYXRoIGQ9Ik0yMDYgMTI4IEwxNjYgODggTDEyNiAxMjggTDE2NiAxNjggWiIgZmlsbD0iIzBCMEUxMSIvPjxwYXRoIGQ9Ik0xMjggMTAwIEwxNTYgMTI4IEwxMjggMTU2IEwxMDAgMTI4IFoiIGZpbGw9IiMwQjBFMTEiLz48L3N2Zz4K", mimeType="image/svg+xml")
@@ -20,25 +18,20 @@ def get_user_client(api_key: Optional[str] = None, api_secret: Optional[str] = N
     if api_key and api_secret:
         return BinanceClient(api_key=api_key, api_secret=api_secret, proxy=proxy)
         
-    # Иначе берем ключи из базы данных
-    user_id = current_user_id.get()
-    if not user_id:
-        raise Exception("User not authenticated or context missing")
-        
-    db_api_key, db_api_secret, db_proxy = database.get_user_settings(user_id)
+    # Иначе берем ключи из переменных окружения (опционально, если они там заданы)
+    env_api_key = os.environ.get("BINANCE_API_KEY")
+    env_api_secret = os.environ.get("BINANCE_API_SECRET")
+    env_proxy = os.environ.get("BINANCE_PROXY")
     
-    # Приоритет отдаем переданному прокси, если его нет - берем из БД
-    final_proxy = proxy if proxy else db_proxy
+    final_proxy = proxy if proxy else env_proxy
     
-    if not db_api_key or not db_api_secret:
-        raise Exception("Binance API keys not configured. Please set them in your dashboard or provide them in the request.")
+    if not env_api_key or not env_api_secret:
+        raise Exception("Binance API keys not provided in tool arguments or environment variables.")
         
-    return BinanceClient(api_key=db_api_key, api_secret=db_api_secret, proxy=final_proxy)
+    return BinanceClient(api_key=env_api_key, api_secret=env_api_secret, proxy=final_proxy)
 
 def log_action(action: str, details: str = ""):
-    user_id = current_user_id.get()
-    if user_id:
-        database.log_operation(user_id, action, details)
+    print(f"[Operation Log] Action: {action} | Details: {details}")
 
 @mcp.tool()
 def get_binance_balance(api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
@@ -247,25 +240,16 @@ if __name__ == "__main__":
         if client_id != OAUTH_CLIENT_ID or client_secret != OAUTH_CLIENT_SECRET:
              return JSONResponse({"error": "invalid_client", "details": "Incorrect Client ID or Secret"}, status_code=401)
         
-        # We just need a single admin user to bind the token to
-        database.register_user("admin", "admin_password")
-        user_id = database.verify_user("admin", "admin_password")
-        
-        if user_id:
-            # Generate a token for Gemini to use
-            access_token = database.get_or_create_api_key(user_id)
-            
-            return JSONResponse({
-                "access_token": access_token,
-                "token_type": "bearer",
-                "expires_in": 31536000
-            })
-            
-        return JSONResponse({"error": "server_error"}, status_code=500)
+        # Return a static token for Gemini to use. Stateless!
+        return JSONResponse({
+            "access_token": STATIC_ACCESS_TOKEN,
+            "token_type": "bearer",
+            "expires_in": 31536000
+        })
 
     class AuthMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
-            public_paths = ["/", "/sse", "/authorize", "/login", "/register", "/token", "/dashboard", "/save_keys", "/logout"]
+            public_paths = ["/", "/sse", "/authorize", "/token"]
             if request.url.path in public_paths or request.url.path.startswith("/static/"):
                 return await call_next(request)
             
@@ -274,15 +258,10 @@ if __name__ == "__main__":
                 return JSONResponse({"error": "Unauthorized"}, status_code=401, headers={"WWW-Authenticate": "Bearer"})
                 
             token = auth_header.split(" ")[1]
-            user_id = database.get_user_by_token(token)
-            if not user_id:
+            if token != STATIC_ACCESS_TOKEN:
                 return JSONResponse({"error": "Invalid token"}, status_code=401, headers={"WWW-Authenticate": "Bearer"})
             
-            token_ctx = current_user_id.set(user_id)
-            try:
-                return await call_next(request)
-            finally:
-                current_user_id.reset(token_ctx)
+            return await call_next(request)
 
     class LoggingMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
