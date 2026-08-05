@@ -10,9 +10,17 @@ current_client_id = contextvars.ContextVar("current_client_id")
 
 import mcp.types
 
-mcp = FastMCP("Binance Trading Server", icons=[
-    mcp.types.Icon(src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgdmlld0JveD0iMCAwIDI1NiAyNTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI1NiIgaGVpZ2h0PSIyNTYiIHJ4PSI1MCIgZmlsbD0iI0ZDRDUzNSIvPjxwYXRoIGQ9Ik0xMjggNTAgTDE2OCA5MCBMMTI4IDEzMCBMODggOTAgWiIgZmlsbD0iIzBCMEUxMSIvPjxwYXRoIGQ9Ik0xMjggMjA2IEwxNjggMTY2IEwxMjggMTI2IEw4OCAxNjYgWiIgZmlsbD0iIzBCMEUxMSIvPjxwYXRoIGQ9Ik01MCAxMjggTDkwIDg4IEwxMzAgMTI4IEw5MCAxNjggWiIgZmlsbD0iIzBCMEUxMSIvPjxwYXRoIGQ9Ik0yMDYgMTI4IEwxNjYgODggTDEyNiAxMjggTDE2NiAxNjggWiIgZmlsbD0iIzBCMEUxMSIvPjxwYXRoIGQ9Ik0xMjggMTAwIEwxNTYgMTI4IEwxMjggMTU2IEwxMDAgMTI4IFoiIGZpbGw9IiMwQjBFMTEiLz48L3N2Zz4K", mimeType="image/svg+xml")
-])
+mcp = FastMCP(
+    "Binance Trading Server",
+    instructions="""Это сервер для торговли на бирже Binance. 
+Если пользователь просит узнать баланс, выставить ордер или отменить его — используй соответствующие инструменты (tools) этого сервера. 
+Ключи Binance хранятся в базе данных сервера персонально для каждого пользователя (привязка по Client ID). 
+Если при вызове инструмента сервер возвращает ошибку об отсутствии ключей, вежливо попроси пользователя предоставить его Binance API Key и API Secret в чате, а затем используй инструмент save_binance_credentials, чтобы сохранить их.
+Никогда не запрашивай Client ID и Client Secret — они используются только на этапе подключения (OAuth).""",
+    icons=[
+        mcp.types.Icon(src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgdmlld0JveD0iMCAwIDI1NiAyNTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI1NiIgaGVpZ2h0PSIyNTYiIHJ4PSI1MCIgZmlsbD0iI0ZDRDUzNSIvPjxwYXRoIGQ9Ik0xMjggNTAgTDE2OCA5MCBMMTI4IDEzMCBMODggOTAgWiIgZmlsbD0iIzBCMEUxMSIvPjxwYXRoIGQ9Ik0xMjggMjA2IEwxNjggMTY2IEwxMjggMTI2IEw4OCAxNjYgWiIgZmlsbD0iIzBCMEUxMSIvPjxwYXRoIGQ9Ik01MCAxMjggTDkwIDg4IEwxMzAgMTI4IEw5MCAxNjggWiIgZmlsbD0iIzBCMEUxMSIvPjxwYXRoIGQ9Ik0yMDYgMTI4IEwxNjYgODggTDEyNiAxMjggTDE2NiAxNjggWiIgZmlsbD0iIzBCMEUxMSIvPjxwYXRoIGQ9Ik0xMjggMTAwIEwxNTYgMTI4IEwxMjggMTU2IEwxMDAgMTI4IFoiIGZpbGw9IiMwQjBFMTEiLz48L3N2Zz4K", mimeType="image/svg+xml")
+    ]
+)
 
 def get_user_client(api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None):
     # Если нейросеть передает ключи напрямую
