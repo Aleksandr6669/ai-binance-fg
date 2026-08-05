@@ -202,10 +202,8 @@ def get_current_ip(proxy: Optional[str] = None) -> dict:
 
 if __name__ == "__main__":
     import os
-    # Если скрипт запущен на Hugging Face Spaces или Render, запускаем SSE-сервер на нужном порту
-    if os.environ.get("SPACE_ID") or os.environ.get("RENDER"):
-        print("Starting on HF Spaces or Render using SSE...")
-        import uvicorn
+    print("Starting Web Portal and MCP Server...")
+    import uvicorn
         from starlette.middleware.cors import CORSMiddleware
         from starlette.middleware.base import BaseHTTPMiddleware
         from starlette.middleware.sessions import SessionMiddleware
@@ -448,12 +446,12 @@ if __name__ == "__main__":
                 
                 auth_header = request.headers.get("Authorization")
                 if not auth_header or not auth_header.startswith("Bearer "):
-                    return JSONResponse({"error": "Unauthorized"}, status_code=401)
+                    return JSONResponse({"error": "Unauthorized"}, status_code=401, headers={"WWW-Authenticate": "Bearer"})
                     
                 token = auth_header.split(" ")[1]
                 user_id = database.get_user_by_token(token)
                 if not user_id:
-                    return JSONResponse({"error": "Invalid token"}, status_code=401)
+                    return JSONResponse({"error": "Invalid token"}, status_code=401, headers={"WWW-Authenticate": "Bearer"})
                 
                 # Устанавливаем ContextVar для инструментов MCP
                 token_ctx = current_user_id.set(user_id)
@@ -498,7 +496,5 @@ if __name__ == "__main__":
         )
         
         port = int(os.environ.get("PORT", 8000))
+        print(f"Starting Web Portal and MCP Server on http://0.0.0.0:{port}")
         uvicorn.run(cors_app, host="0.0.0.0", port=port)
-    else:
-        # Иначе запускаем стандартный локальный stdio сервер
-        mcp.run()
