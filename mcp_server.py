@@ -3,9 +3,10 @@ from binance_client import BinanceClient
 from typing import Optional
 import contextvars
 import database
+import os
 
-    OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "my-client-id")
-    OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "my-client-secret")
+OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "my-client-id")
+OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "my-client-secret")
 import mcp.types
 
 current_user_id = contextvars.ContextVar("current_user_id", default=None)
