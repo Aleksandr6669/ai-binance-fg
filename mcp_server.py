@@ -222,6 +222,7 @@ if __name__ == "__main__":
         <html>
         <head>
             <title>{title}</title>
+            <link rel="icon" href="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" type="image/png">
             <style>
                 body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }}
                 .container {{ max-width: 600px; margin: 40px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }}
