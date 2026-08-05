@@ -10,13 +10,8 @@ current_client_id = contextvars.ContextVar("current_client_id")
 global_session_map = {}
 
 def get_client_id_from_ctx(ctx):
-    print(f"[AUTH DEBUG] get_client_id_from_ctx called. ctx={ctx}", flush=True)
-    if ctx and hasattr(ctx, 'session_id') and ctx.session_id:
-        sid = str(ctx.session_id).replace('-', '')
-        cid = global_session_map.get(sid)
-        print(f"[AUTH DEBUG] session_id={ctx.session_id}, sid={sid}, client_id={cid}, map_keys={list(global_session_map.keys())}", flush=True)
-        return cid
-    print("[AUTH DEBUG] ctx has no session_id!", flush=True)
+    if ctx:
+        return ctx.client_id
     return None
 
 import mcp.types
@@ -34,23 +29,17 @@ mcp = FastMCP(
 )
 
 def get_user_client(ctx: Context = None, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None):
-    # Если нейросеть передает ключи напрямую
-    if api_key and api_secret:
-        return BinanceClient(api_key=api_key, api_secret=api_secret, proxy=proxy)
-        
-    # Иначе берем ключи из базы данных
     client_id = None
-    client_id = get_client_id_from_ctx(ctx)
+    if ctx:
+        client_id = get_client_id_from_ctx(ctx)
+        
     if not client_id:
-        try:
-            client_id = current_client_id.get()
-        except LookupError:
-            raise Exception("Authentication context lost. Please reconnect the application.")
+        raise Exception("Authentication context lost. Please reconnect the application.")
         
     db_api_key, db_api_secret, db_proxy = database.get_settings(client_id)
     
-    final_api_key = db_api_key
-    final_api_secret = db_api_secret
+    final_api_key = api_key if api_key else db_api_key
+    final_api_secret = api_secret if api_secret else db_api_secret
     final_proxy = proxy if proxy else db_proxy
     
     if not final_api_key or not final_api_secret:
@@ -69,10 +58,7 @@ def save_binance_credentials(ctx: Context, api_key: str, api_secret: str, proxy:
     """
     client_id = get_client_id_from_ctx(ctx)
     if not client_id:
-        try:
-            client_id = current_client_id.get()
-        except LookupError:
-            return "ERROR: Authentication context lost. Please reconnect."
+        return "ERROR: Authentication context lost. Please reconnect."
         
     database.save_settings(client_id, api_key, api_secret, proxy)
     log_action("Saved Credentials", "Binance API credentials were saved to the database.")
@@ -83,10 +69,7 @@ def delete_binance_credentials(ctx: Context) -> str:
     """Delete the saved Binance API credentials from the application database."""
     client_id = get_client_id_from_ctx(ctx)
     if not client_id:
-        try:
-            client_id = current_client_id.get()
-        except LookupError:
-            return "ERROR: Authentication context lost. Please reconnect."
+        return "ERROR: Authentication context lost. Please reconnect."
         
     database.delete_settings(client_id)
     log_action("Deleted Credentials", "Binance API credentials were deleted.")
@@ -97,10 +80,7 @@ def check_binance_credentials_status(ctx: Context) -> str:
     """Check if Binance API credentials are currently saved in the application database."""
     client_id = get_client_id_from_ctx(ctx)
     if not client_id:
-        try:
-            client_id = current_client_id.get()
-        except LookupError:
-            return "ERROR: Authentication context lost. Please reconnect."
+        return "ERROR: Authentication context lost. Please reconnect."
         
     api_key, _, proxy = database.get_settings(client_id)
     if api_key:
@@ -361,20 +341,34 @@ if __name__ == "__main__":
                 await self.send_401(send)
                 return
 
-            query_string = scope.get("query_string", b"").decode("utf-8")
-            print(f"ASGI Request to {scope.get('path', '')} with query_string: {query_string}", flush=True)
-            if "session_id=" in query_string:
-                import urllib.parse
-                parsed_query = urllib.parse.parse_qs(query_string)
-                if "session_id" in parsed_query:
-                    session_id = parsed_query["session_id"][0]
-                    global_session_map[session_id] = client_id
+            import json
+            
+            if scope["method"] == "POST" and "session_id=" in scope.get("query_string", b"").decode("utf-8"):
+                body_bytes = b""
+                more_body = True
+                while more_body:
+                    message = await receive()
+                    body_bytes += message.get("body", b"")
+                    more_body = message.get("more_body", False)
+                    
+                try:
+                    data = json.loads(body_bytes)
+                    if "params" not in data:
+                        data["params"] = {}
+                    if "_meta" not in data["params"]:
+                        data["params"]["_meta"] = {}
+                    data["params"]["_meta"]["client_id"] = client_id
+                    body_bytes = json.dumps(data).encode("utf-8")
+                except Exception as e:
+                    print(f"Failed to inject client_id: {e}", flush=True)
+                
+                async def new_receive():
+                    return {"type": "http.request", "body": body_bytes, "more_body": False}
+                    
+                await self.app(scope, new_receive, send)
+                return
 
-            token_ctx = current_client_id.set(client_id)
-            try:
-                await self.app(scope, receive, send)
-            finally:
-                current_client_id.reset(token_ctx)
+            await self.app(scope, receive, send)
 
         async def send_401(self, send):
             await send({
