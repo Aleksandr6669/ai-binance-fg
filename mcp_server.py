@@ -251,11 +251,13 @@ if __name__ == "__main__":
         form = parse_qs(body_bytes.decode('utf-8'))
         username = form.get("username", [""])[0]
         password = form.get("password", [""])[0]
+        redirect_uri = form.get("redirect_uri", [""])[0]
+        state = form.get("state", [""])[0]
         
         if database.register_user(username, password):
-            return render_template("login.html", {"error_html": "<div class='error'>Registration successful! Please login.</div>"})
+            return render_template("login.html", {"error_html": "<div class='error' style='color: #00C853; background-color: rgba(0, 200, 83, 0.1); border-color: rgba(0, 200, 83, 0.2);'>Registration successful! Please login.</div>", "redirect_uri": redirect_uri, "state": state})
         else:
-            return render_template("login.html", {"error_html": "<div class='error'>Username already taken.</div>"})
+            return render_template("login.html", {"error_html": "<div class='error'>Username already taken.</div>", "redirect_uri": redirect_uri, "state": state})
 
     async def login(request):
         body_bytes = await request.body()
