@@ -259,7 +259,28 @@ if __name__ == "__main__":
             # Gemini will then call /token with the client_id (Binance API Key) and client_secret.
             url = f"{redirect_uri}?code=dummy_auth_code&state={state}"
             return RedirectResponse(url, status_code=303)
-        return JSONResponse({"status": "ok"})
+            
+        html_content = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Binance Trading Server</title>
+            <meta name="description" content="AI Assistant for Binance">
+            <link rel="icon" href="https://cryptologos.cc/logos/bnb-bnb-logo.png" type="image/png">
+            <meta property="og:title" content="Binance Trading Server">
+            <meta property="og:description" content="AI Assistant for Binance">
+            <meta property="og:image" content="https://cryptologos.cc/logos/bnb-bnb-logo.png">
+        </head>
+        <body>
+            <h1>Binance Trading MCP Server</h1>
+            <p>This server provides tools to trade on Binance via AI.</p>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html_content)
+
+    async def favicon(request):
+        return RedirectResponse("https://cryptologos.cc/logos/bnb-bnb-logo.png")
 
     async def token(request):
         body_bytes = await request.body()
@@ -313,6 +334,7 @@ if __name__ == "__main__":
     
     app = Starlette(routes=[
         Route("/", authorize, methods=["GET"]),
+        Route("/favicon.ico", favicon, methods=["GET"]),
         Route("/authorize", authorize, methods=["GET"]),
         Route("/token", token, methods=["POST"]),
         Mount("/", app=mcp_app)
