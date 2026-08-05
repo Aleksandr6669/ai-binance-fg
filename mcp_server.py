@@ -1,4 +1,4 @@
-from fastmcp import FastMCP
+from fastmcp import FastMCP, Context
 from binance_client import BinanceClient
 from typing import Optional
 import os
@@ -7,6 +7,7 @@ import database
 import contextvars
 
 current_client_id = contextvars.ContextVar("current_client_id")
+global_session_map = {}
 
 import mcp.types
 
@@ -22,16 +23,20 @@ mcp = FastMCP(
     ]
 )
 
-def get_user_client(api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None):
+def get_user_client(ctx: Context = None, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None):
     # Если нейросеть передает ключи напрямую
     if api_key and api_secret:
         return BinanceClient(api_key=api_key, api_secret=api_secret, proxy=proxy)
         
     # Иначе берем ключи из базы данных
-    try:
-        client_id = current_client_id.get()
-    except LookupError:
-        raise Exception("Authentication context lost. Please reconnect the application.")
+    client_id = None
+    if ctx and hasattr(ctx, "session_id"):
+        client_id = global_session_map.get(ctx.session_id)
+    if not client_id:
+        try:
+            client_id = current_client_id.get()
+        except LookupError:
+            raise Exception("Authentication context lost. Please reconnect the application.")
         
     db_api_key, db_api_secret, db_proxy = database.get_settings(client_id)
     
@@ -54,39 +59,45 @@ def log_action(action: str, details: str = ""):
     print(f"[Operation Log] Action: {action} | Details: {details}")
 
 @mcp.tool()
-def save_binance_credentials(api_key: str, api_secret: str, proxy: Optional[str] = None) -> str:
+def save_binance_credentials(ctx: Context, api_key: str, api_secret: str, proxy: Optional[str] = None) -> str:
     """Save Binance API credentials to the application database.
     Gemini should use this tool when the user provides their Binance keys in the chat.
     The keys will be securely stored and used for all future operations.
     """
-    try:
-        client_id = current_client_id.get()
-    except LookupError:
-        return "ERROR: Authentication context lost. Please reconnect."
+    client_id = global_session_map.get(ctx.session_id) if hasattr(ctx, "session_id") else None
+    if not client_id:
+        try:
+            client_id = current_client_id.get()
+        except LookupError:
+            return "ERROR: Authentication context lost. Please reconnect."
         
     database.save_settings(client_id, api_key, api_secret, proxy)
     log_action("Saved Credentials", "Binance API credentials were saved to the database.")
     return "Successfully saved Binance API credentials to the database."
 
 @mcp.tool()
-def delete_binance_credentials() -> str:
+def delete_binance_credentials(ctx: Context) -> str:
     """Delete the saved Binance API credentials from the application database."""
-    try:
-        client_id = current_client_id.get()
-    except LookupError:
-        return "ERROR: Authentication context lost. Please reconnect."
+    client_id = global_session_map.get(ctx.session_id) if hasattr(ctx, "session_id") else None
+    if not client_id:
+        try:
+            client_id = current_client_id.get()
+        except LookupError:
+            return "ERROR: Authentication context lost. Please reconnect."
         
     database.delete_settings(client_id)
     log_action("Deleted Credentials", "Binance API credentials were deleted.")
     return "Successfully deleted Binance API credentials."
 
 @mcp.tool()
-def check_binance_credentials_status() -> str:
+def check_binance_credentials_status(ctx: Context) -> str:
     """Check if Binance API credentials are currently saved in the application database."""
-    try:
-        client_id = current_client_id.get()
-    except LookupError:
-        return "ERROR: Authentication context lost. Please reconnect."
+    client_id = global_session_map.get(ctx.session_id) if hasattr(ctx, "session_id") else None
+    if not client_id:
+        try:
+            client_id = current_client_id.get()
+        except LookupError:
+            return "ERROR: Authentication context lost. Please reconnect."
         
     api_key, _, proxy = database.get_settings(client_id)
     if api_key:
@@ -95,22 +106,22 @@ def check_binance_credentials_status() -> str:
         return "Credentials are NOT saved. Please use save_binance_credentials to set them."
 
 @mcp.tool()
-def get_binance_balance(api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
+def get_binance_balance(ctx: Context, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Fetch the full Binance portfolio balance in USD and various assets."""
     try:
-        client = get_user_client(api_key, api_secret, proxy)
+        client = get_user_client(ctx, api_key, api_secret, proxy)
         log_action("Checked Balance", "Requested full portfolio balance")
         return client.get_full_portfolio()
     except Exception as e:
         return {"error": str(e)}
 
 @mcp.tool()
-def get_binance_open_orders(symbol: Optional[str] = None, market_type: str = "SPOT", api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
+def get_binance_open_orders(ctx: Context, symbol: Optional[str] = None, market_type: str = "SPOT", api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Fetch open orders for a specific symbol or all symbols.
     - market_type: 'SPOT' or 'FUTURES'
     """
     try:
-        client = get_user_client(api_key, api_secret, proxy)
+        client = get_user_client(ctx, api_key, api_secret, proxy)
         orders = client.get_open_orders(symbol=symbol, market_type=market_type)
         log_action("Checked Open Orders", f"Symbol: {symbol or 'ALL'}, Market: {market_type}")
         return {"orders": orders}
@@ -118,12 +129,12 @@ def get_binance_open_orders(symbol: Optional[str] = None, market_type: str = "SP
         return {"error": str(e)}
 
 @mcp.tool()
-def get_binance_order_history(symbol: str, market_type: str = "SPOT", limit: int = 500, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
+def get_binance_order_history(ctx: Context, symbol: str, market_type: str = "SPOT", limit: int = 500, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Fetch all historical orders (open, canceled, filled) for a specific symbol.
     - market_type: 'SPOT' or 'FUTURES'
     """
     try:
-        client = get_user_client(api_key, api_secret, proxy)
+        client = get_user_client(ctx, api_key, api_secret, proxy)
         orders = client.get_all_orders(symbol=symbol, market_type=market_type, limit=limit)
         log_action("Checked Order History", f"Symbol: {symbol}, Market: {market_type}")
         return {"orders": orders}
@@ -131,10 +142,10 @@ def get_binance_order_history(symbol: str, market_type: str = "SPOT", limit: int
         return {"error": str(e)}
 
 @mcp.tool()
-def get_binance_positions(symbol: Optional[str] = None, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
+def get_binance_positions(ctx: Context, symbol: Optional[str] = None, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Fetch current active positions and their unRealizedProfit on Binance Futures."""
     try:
-        client = get_user_client(api_key, api_secret, proxy)
+        client = get_user_client(ctx, api_key, api_secret, proxy)
         positions = client.get_positions(symbol=symbol)
         log_action("Checked Positions", f"Symbol: {symbol or 'ALL'}")
         return {"positions": positions}
@@ -142,7 +153,7 @@ def get_binance_positions(symbol: Optional[str] = None, api_key: Optional[str] =
         return {"error": str(e)}
 
 @mcp.tool()
-def place_binance_order(symbol: str, side: str, order_type: str, market_type: str = "SPOT", quantity: Optional[float] = None, usdt_amount: Optional[float] = None, wallet_percentage: Optional[float] = None, leverage: Optional[int] = None, price: Optional[float] = None, stop_price: Optional[float] = None, trailing_delta: Optional[int] = None, reduce_only: bool = False, close_position: bool = False, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
+def place_binance_order(ctx: Context, symbol: str, side: str, order_type: str, market_type: str = "SPOT", quantity: Optional[float] = None, usdt_amount: Optional[float] = None, wallet_percentage: Optional[float] = None, leverage: Optional[int] = None, price: Optional[float] = None, stop_price: Optional[float] = None, trailing_delta: Optional[int] = None, reduce_only: bool = False, close_position: bool = False, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Place a new order on Binance Spot or Futures.
     - side: 'BUY' or 'SELL'
     - order_type: 'MARKET', 'LIMIT', 'STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT', 'STOP_MARKET', 'TAKE_PROFIT_MARKET', 'TRAILING_STOP_MARKET'
@@ -158,7 +169,7 @@ def place_binance_order(symbol: str, side: str, order_type: str, market_type: st
     - close_position: Closes the entire position for the given symbol and side (only for FUTURES)
     """
     try:
-        client = get_user_client(api_key, api_secret, proxy)
+        client = get_user_client(ctx, api_key, api_secret, proxy)
         order_res = client.create_order(
             symbol=symbol, side=side, order_type=order_type, market_type=market_type,
             quantity=quantity, usdt_amount=usdt_amount, wallet_percentage=wallet_percentage,
@@ -172,10 +183,10 @@ def place_binance_order(symbol: str, side: str, order_type: str, market_type: st
         return {"success": False, "error": str(e)}
 
 @mcp.tool()
-def cancel_binance_order(symbol: str, order_id: int, market_type: str = "SPOT", api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
+def cancel_binance_order(ctx: Context, symbol: str, order_id: int, market_type: str = "SPOT", api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Cancel a specific active order on Binance Spot or Futures."""
     try:
-        client = get_user_client(api_key, api_secret, proxy)
+        client = get_user_client(ctx, api_key, api_secret, proxy)
         res = client.cancel_order(symbol=symbol, order_id=order_id, market_type=market_type)
         log_action("Canceled Order", f"Order {order_id} on {symbol} ({market_type})")
         return {"success": True, "result": res}
@@ -184,10 +195,10 @@ def cancel_binance_order(symbol: str, order_id: int, market_type: str = "SPOT", 
         return {"success": False, "error": str(e)}
 
 @mcp.tool()
-def cancel_all_binance_orders(symbol: str, market_type: str = "SPOT", api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
+def cancel_all_binance_orders(ctx: Context, symbol: str, market_type: str = "SPOT", api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Cancel all active orders for a specific symbol on Binance Spot or Futures."""
     try:
-        client = get_user_client(api_key, api_secret, proxy)
+        client = get_user_client(ctx, api_key, api_secret, proxy)
         res = client.cancel_all_orders(symbol=symbol, market_type=market_type)
         log_action("Canceled All Orders", f"Symbol {symbol} ({market_type})")
         return {"success": True, "result": res}
@@ -196,7 +207,7 @@ def cancel_all_binance_orders(symbol: str, market_type: str = "SPOT", api_key: O
         return {"success": False, "error": str(e)}
 
 @mcp.tool()
-def place_binance_oco_order(symbol: str, side: str, quantity: float, price: float, stop_price: float, stop_limit_price: Optional[float] = None, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
+def place_binance_oco_order(ctx: Context, symbol: str, side: str, quantity: float, price: float, stop_price: float, stop_limit_price: Optional[float] = None, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Place an OCO (One Cancels the Other) order on Binance Spot.
     This allows you to set both a Take Profit (limit) and Stop Loss (stop-limit) simultaneously.
     - side: 'BUY' or 'SELL'
@@ -206,7 +217,7 @@ def place_binance_oco_order(symbol: str, side: str, quantity: float, price: floa
     - stop_limit_price: The Stop Loss limit price (defaults to stop_price if not provided)
     """
     try:
-        client = get_user_client(api_key, api_secret, proxy)
+        client = get_user_client(ctx, api_key, api_secret, proxy)
         res = client.create_oco_order(
             symbol=symbol, side=side, quantity=quantity, 
             price=price, stopPrice=stop_price, stopLimitPrice=stop_limit_price
@@ -218,7 +229,7 @@ def place_binance_oco_order(symbol: str, side: str, quantity: float, price: floa
         return {"success": False, "error": str(e)}
 
 @mcp.tool()
-def get_binance_klines(symbol: str, interval: str, limit: int = 1000, start_time: Optional[int] = None, end_time: Optional[int] = None, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
+def get_binance_klines(ctx: Context, symbol: str, interval: str, limit: int = 1000, start_time: Optional[int] = None, end_time: Optional[int] = None, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Fetch historical klines (candlesticks).
     interval options: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M
     If you need maximum history, you must paginate using start_time and end_time.
@@ -226,7 +237,7 @@ def get_binance_klines(symbol: str, interval: str, limit: int = 1000, start_time
     try:
         # Пытаемся получить ключи для работы с API
         try:
-            client = get_user_client(api_key, api_secret, proxy)
+            client = get_user_client(ctx, api_key, api_secret, proxy)
         except Exception:
             # Если нет авторизации, можно выполнить публичный запрос без ключей
             client = BinanceClient(api_key="", api_secret="", proxy=proxy)
@@ -237,7 +248,7 @@ def get_binance_klines(symbol: str, interval: str, limit: int = 1000, start_time
         return {"error": str(e)}
 
 @mcp.tool()
-def get_current_ip(proxy: Optional[str] = None) -> dict:
+def get_current_ip(ctx: Context, proxy: Optional[str] = None) -> dict:
     """Get the current external IP address that Binance will see. 
     Useful for whitelisting the IP in Binance API settings.
     """
@@ -346,6 +357,14 @@ if __name__ == "__main__":
             if not client_id:
                 await self.send_401(send)
                 return
+
+            query_string = scope.get("query_string", b"").decode("utf-8")
+            if "sessionId=" in query_string:
+                import urllib.parse
+                parsed_query = urllib.parse.parse_qs(query_string)
+                if "sessionId" in parsed_query:
+                    session_id = parsed_query["sessionId"][0]
+                    global_session_map[session_id] = client_id
 
             token_ctx = current_client_id.set(client_id)
             try:
