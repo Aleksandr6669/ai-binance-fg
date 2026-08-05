@@ -33,17 +33,19 @@ def get_user_client(ctx: Context = None, api_key: Optional[str] = None, api_secr
     if ctx:
         client_id = get_client_id_from_ctx(ctx)
         
-    if not client_id:
-        raise Exception("Authentication context lost. Please reconnect the application.")
-        
-    db_api_key, db_api_secret, db_proxy = database.get_settings(client_id)
-    
-    final_api_key = api_key if api_key else db_api_key
-    final_api_secret = api_secret if api_secret else db_api_secret
-    final_proxy = proxy if proxy else db_proxy
+    db_api_key, db_api_secret, db_proxy = None, None, None
+    if client_id:
+        try:
+            db_api_key, db_api_secret, db_proxy = database.get_settings(client_id)
+        except Exception:
+            pass
+            
+    final_api_key = api_key or db_api_key or os.environ.get("BINANCE_API_KEY")
+    final_api_secret = api_secret or db_api_secret or os.environ.get("BINANCE_SECRET_KEY")
+    final_proxy = proxy or db_proxy or os.environ.get("BINANCE_PROXY")
     
     if not final_api_key or not final_api_secret:
-        raise Exception("Binance API keys not found in database. Please use 'save_binance_credentials' to save them.")
+        raise Exception("Binance API keys not found in database or env. Please set BINANCE_API_KEY or use 'save_binance_credentials'.")
         
     return BinanceClient(api_key=final_api_key, api_secret=final_api_secret, proxy=final_proxy)
 
