@@ -28,7 +28,11 @@ def get_user_client(api_key: Optional[str] = None, api_secret: Optional[str] = N
         return BinanceClient(api_key=api_key, api_secret=api_secret, proxy=proxy)
         
     # Иначе берем ключи из базы данных
-    client_id = current_client_id.get()
+    try:
+        client_id = current_client_id.get()
+    except LookupError:
+        raise Exception("Authentication context lost. Please reconnect the application.")
+        
     db_api_key, db_api_secret, db_proxy = database.get_settings(client_id)
     
     # Если ключей нет в БД, пробуем переменные окружения
@@ -55,21 +59,36 @@ def save_binance_credentials(api_key: str, api_secret: str, proxy: Optional[str]
     Gemini should use this tool when the user provides their Binance keys in the chat.
     The keys will be securely stored and used for all future operations.
     """
-    database.save_settings(current_client_id.get(), api_key, api_secret, proxy)
+    try:
+        client_id = current_client_id.get()
+    except LookupError:
+        return "ERROR: Authentication context lost. Please reconnect."
+        
+    database.save_settings(client_id, api_key, api_secret, proxy)
     log_action("Saved Credentials", "Binance API credentials were saved to the database.")
     return "Successfully saved Binance API credentials to the database."
 
 @mcp.tool()
 def delete_binance_credentials() -> str:
     """Delete the saved Binance API credentials from the application database."""
-    database.delete_settings(current_client_id.get())
+    try:
+        client_id = current_client_id.get()
+    except LookupError:
+        return "ERROR: Authentication context lost. Please reconnect."
+        
+    database.delete_settings(client_id)
     log_action("Deleted Credentials", "Binance API credentials were deleted.")
     return "Successfully deleted Binance API credentials."
 
 @mcp.tool()
 def check_binance_credentials_status() -> str:
     """Check if Binance API credentials are currently saved in the application database."""
-    api_key, _, proxy = database.get_settings(current_client_id.get())
+    try:
+        client_id = current_client_id.get()
+    except LookupError:
+        return "ERROR: Authentication context lost. Please reconnect."
+        
+    api_key, _, proxy = database.get_settings(client_id)
     if api_key:
         return f"Credentials ARE saved. Proxy is {'set' if proxy else 'NOT set'}."
     else:
@@ -303,26 +322,51 @@ if __name__ == "__main__":
             "expires_in": 31536000
         })
 
-    class AuthMiddleware(BaseHTTPMiddleware):
-        async def dispatch(self, request, call_next):
-            public_paths = ["/", "/sse", "/authorize", "/token"]
-            if request.url.path in public_paths or request.url.path.startswith("/static/"):
-                return await call_next(request)
+    class ASGIAuthMiddleware:
+        def __init__(self, app):
+            self.app = app
+
+        async def __call__(self, scope, receive, send):
+            if scope["type"] not in ("http", "websocket"):
+                return await self.app(scope, receive, send)
+
+            path = scope.get("path", "")
+            public_paths = ["/", "/favicon.ico", "/authorize", "/token"]
+            if path in public_paths or path.startswith("/static/"):
+                return await self.app(scope, receive, send)
             
-            auth_header = request.headers.get("Authorization")
+            headers = dict(scope.get("headers", []))
+            auth_header = headers.get(b"authorization", b"").decode("utf-8")
+            
             if not auth_header or not auth_header.startswith("Bearer "):
-                return JSONResponse({"error": "Unauthorized"}, status_code=401, headers={"WWW-Authenticate": "Bearer"})
-                
+                await self.send_401(send)
+                return
+
             token = auth_header.split(" ")[1]
             client_id = database.get_client_id_by_token(token)
             if not client_id:
-                return JSONResponse({"error": "Invalid token"}, status_code=401, headers={"WWW-Authenticate": "Bearer"})
-            
+                await self.send_401(send)
+                return
+
             token_ctx = current_client_id.set(client_id)
             try:
-                return await call_next(request)
+                await self.app(scope, receive, send)
             finally:
                 current_client_id.reset(token_ctx)
+
+        async def send_401(self, send):
+            await send({
+                "type": "http.response.start",
+                "status": 401,
+                "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"www-authenticate", b"Bearer")
+                ]
+            })
+            await send({
+                "type": "http.response.body",
+                "body": b'{"error": "Unauthorized"}'
+            })
 
     class LoggingMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
@@ -340,7 +384,7 @@ if __name__ == "__main__":
         Mount("/", app=mcp_app)
     ], lifespan=mcp_app.lifespan)
 
-    app.add_middleware(AuthMiddleware)
+    app.add_middleware(ASGIAuthMiddleware)
     app.add_middleware(LoggingMiddleware)
     cors_app = CORSMiddleware(
         app=app,
