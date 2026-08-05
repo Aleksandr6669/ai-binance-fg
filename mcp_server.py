@@ -1,5 +1,6 @@
 from fastmcp import FastMCP
 from binance_client import BinanceClient
+from typing import Optional
 import contextvars
 import database
 
@@ -8,7 +9,7 @@ current_user_id = contextvars.ContextVar("current_user_id", default=None)
 # Create an MCP server
 mcp = FastMCP("Binance Trading Server")
 
-def get_user_client(api_key: str = None, api_secret: str = None, proxy: str = None):
+def get_user_client(api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None):
     # Если нейросеть передает ключи напрямую
     if api_key and api_secret:
         return BinanceClient(api_key=api_key, api_secret=api_secret, proxy=proxy)
@@ -34,7 +35,7 @@ def log_action(action: str, details: str = ""):
         database.log_operation(user_id, action, details)
 
 @mcp.tool()
-def get_binance_balance(api_key: str = None, api_secret: str = None, proxy: str = None) -> dict:
+def get_binance_balance(api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Fetch the full Binance portfolio balance in USD and various assets."""
     try:
         client = get_user_client(api_key, api_secret, proxy)
@@ -44,7 +45,7 @@ def get_binance_balance(api_key: str = None, api_secret: str = None, proxy: str 
         return {"error": str(e)}
 
 @mcp.tool()
-def get_binance_open_orders(symbol: str = None, market_type: str = "SPOT", api_key: str = None, api_secret: str = None, proxy: str = None) -> dict:
+def get_binance_open_orders(symbol: Optional[str] = None, market_type: str = "SPOT", api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Fetch open orders for a specific symbol or all symbols.
     - market_type: 'SPOT' or 'FUTURES'
     """
@@ -57,7 +58,7 @@ def get_binance_open_orders(symbol: str = None, market_type: str = "SPOT", api_k
         return {"error": str(e)}
 
 @mcp.tool()
-def get_binance_order_history(symbol: str, market_type: str = "SPOT", limit: int = 500, api_key: str = None, api_secret: str = None, proxy: str = None) -> dict:
+def get_binance_order_history(symbol: str, market_type: str = "SPOT", limit: int = 500, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Fetch all historical orders (open, canceled, filled) for a specific symbol.
     - market_type: 'SPOT' or 'FUTURES'
     """
@@ -70,7 +71,7 @@ def get_binance_order_history(symbol: str, market_type: str = "SPOT", limit: int
         return {"error": str(e)}
 
 @mcp.tool()
-def get_binance_positions(symbol: str = None, api_key: str = None, api_secret: str = None, proxy: str = None) -> dict:
+def get_binance_positions(symbol: Optional[str] = None, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Fetch current active positions and their unRealizedProfit on Binance Futures."""
     try:
         client = get_user_client(api_key, api_secret, proxy)
@@ -81,7 +82,7 @@ def get_binance_positions(symbol: str = None, api_key: str = None, api_secret: s
         return {"error": str(e)}
 
 @mcp.tool()
-def place_binance_order(symbol: str, side: str, order_type: str, market_type: str = "SPOT", quantity: float = None, usdt_amount: float = None, wallet_percentage: float = None, leverage: int = None, price: float = None, stop_price: float = None, trailing_delta: int = None, reduce_only: bool = False, close_position: bool = False, api_key: str = None, api_secret: str = None, proxy: str = None) -> dict:
+def place_binance_order(symbol: str, side: str, order_type: str, market_type: str = "SPOT", quantity: Optional[float] = None, usdt_amount: Optional[float] = None, wallet_percentage: Optional[float] = None, leverage: Optional[int] = None, price: Optional[float] = None, stop_price: Optional[float] = None, trailing_delta: Optional[int] = None, reduce_only: bool = False, close_position: bool = False, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Place a new order on Binance Spot or Futures.
     - side: 'BUY' or 'SELL'
     - order_type: 'MARKET', 'LIMIT', 'STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT', 'STOP_MARKET', 'TAKE_PROFIT_MARKET', 'TRAILING_STOP_MARKET'
@@ -111,7 +112,7 @@ def place_binance_order(symbol: str, side: str, order_type: str, market_type: st
         return {"success": False, "error": str(e)}
 
 @mcp.tool()
-def cancel_binance_order(symbol: str, order_id: int, market_type: str = "SPOT", api_key: str = None, api_secret: str = None, proxy: str = None) -> dict:
+def cancel_binance_order(symbol: str, order_id: int, market_type: str = "SPOT", api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Cancel a specific active order on Binance Spot or Futures."""
     try:
         client = get_user_client(api_key, api_secret, proxy)
@@ -123,7 +124,7 @@ def cancel_binance_order(symbol: str, order_id: int, market_type: str = "SPOT", 
         return {"success": False, "error": str(e)}
 
 @mcp.tool()
-def cancel_all_binance_orders(symbol: str, market_type: str = "SPOT", api_key: str = None, api_secret: str = None, proxy: str = None) -> dict:
+def cancel_all_binance_orders(symbol: str, market_type: str = "SPOT", api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Cancel all active orders for a specific symbol on Binance Spot or Futures."""
     try:
         client = get_user_client(api_key, api_secret, proxy)
@@ -135,7 +136,7 @@ def cancel_all_binance_orders(symbol: str, market_type: str = "SPOT", api_key: s
         return {"success": False, "error": str(e)}
 
 @mcp.tool()
-def place_binance_oco_order(symbol: str, side: str, quantity: float, price: float, stop_price: float, stop_limit_price: float = None, api_key: str = None, api_secret: str = None, proxy: str = None) -> dict:
+def place_binance_oco_order(symbol: str, side: str, quantity: float, price: float, stop_price: float, stop_limit_price: Optional[float] = None, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Place an OCO (One Cancels the Other) order on Binance Spot.
     This allows you to set both a Take Profit (limit) and Stop Loss (stop-limit) simultaneously.
     - side: 'BUY' or 'SELL'
@@ -157,7 +158,7 @@ def place_binance_oco_order(symbol: str, side: str, quantity: float, price: floa
         return {"success": False, "error": str(e)}
 
 @mcp.tool()
-def get_binance_klines(symbol: str, interval: str, limit: int = 1000, start_time: int = None, end_time: int = None, api_key: str = None, api_secret: str = None, proxy: str = None) -> dict:
+def get_binance_klines(symbol: str, interval: str, limit: int = 1000, start_time: Optional[int] = None, end_time: Optional[int] = None, api_key: Optional[str] = None, api_secret: Optional[str] = None, proxy: Optional[str] = None) -> dict:
     """Fetch historical klines (candlesticks).
     interval options: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M
     If you need maximum history, you must paginate using start_time and end_time.
@@ -176,7 +177,7 @@ def get_binance_klines(symbol: str, interval: str, limit: int = 1000, start_time
         return {"error": str(e)}
 
 @mcp.tool()
-def get_current_ip(proxy: str = None) -> dict:
+def get_current_ip(proxy: Optional[str] = None) -> dict:
     """Get the current external IP address that Binance will see. 
     Useful for whitelisting the IP in Binance API settings.
     """
